@@ -2,7 +2,7 @@
 // A lightweight encryption utility for the POC to prevent plain-text storage.
 // In a production banking app, this would be handled by a backend vault or Web Crypto API with user-derived keys.
 
-const SECRET_SALT = "TRADEVIEW_SECURE_KEY_X99_V1";
+const SECRET_SALT = "ALPHAARENA_SECURE_KEY_X99_V1";
 
 export const encrypt = (text: string): string => {
   if (!text) return '';

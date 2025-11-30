@@ -37,7 +37,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading = false 
               </div>
               <div className="mt-12 space-y-6">
                 <h1 className="text-4xl font-bold leading-tight text-white">
-                  {isLogin ? "Welcome back to the future of trading." : "Start your journey with TradeView."}
+                  {isLogin ? "Welcome back to the future of trading." : "Start your journey with AlphaArena."}
                 </h1>
                 <p className={`text-lg ${theme === 'dark' ? 'text-gray-400' : 'text-blue-100'}`}>
                   Access real-time market data, AI-powered insights, and manage your portfolio with precision.
@@ -150,7 +150,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading = false 
 
            <div className="mt-8 text-center">
               <p className="text-xs text-gray-500">
-                Connected to TradeView Cloud. 
+                Connected to AlphaArena Cloud.
               </p>
            </div>
         </div>

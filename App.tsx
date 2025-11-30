@@ -148,10 +148,10 @@ const AppContent: React.FC = () => {
             db.initDatabase();
             
             // 1. One-time Migration to Reset V3 DB for user (now V4)
-            const hasMigrated = localStorage.getItem('tradeview_v4_migrated');
+            const hasMigrated = localStorage.getItem('alphaarena_v4_migrated');
             if (!hasMigrated) {
                 console.log("Migration: Resetting DB for clean slate (V4)...");
-                localStorage.setItem('tradeview_v4_migrated', 'true');
+                localStorage.setItem('alphaarena_v4_migrated', 'true');
             }
 
             // 2. GLOBAL CLOUD INIT
@@ -305,7 +305,7 @@ const AppContent: React.FC = () => {
         }
         
         // Ensure V4 Reset happens for this specific user if not done
-        const userMigratedKey = `tradeview_v4_reset_${user.id}`;
+        const userMigratedKey = `alphaarena_v4_reset_${user.id}`;
         if (!localStorage.getItem(userMigratedKey)) {
             // UPDATED: resetUserAccount now requires a championshipId.
             // This is problematic if we are resetting a user with no current champ.

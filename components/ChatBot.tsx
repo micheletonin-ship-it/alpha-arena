@@ -109,7 +109,7 @@ export const ChatBot: React.FC<ChatBotProps> = ({ theme, marketData, holdings, u
       // championshipId prop is now guaranteed to be a string.
 
       const systemContext = `
-        Sei un assistente di trading AI avanzato chiamato "TradeBot" incorporato nell'applicazione TradeView.
+        Sei un assistente di trading AI avanzato chiamato "TradeBot" incorporato nell'applicazione AlphaArena.
         
         CONTESTO UTENTE:
         - Nome: ${user.name}

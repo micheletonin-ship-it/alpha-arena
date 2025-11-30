@@ -26,16 +26,16 @@ export const initCloud = (config: CloudConfig) => {
     
     try {
         supabase = createClient(config.url, config.key);
-        localStorage.setItem('tradeview_supabase_url', config.url);
-        localStorage.setItem('tradeview_supabase_key', config.key);
+        localStorage.setItem('alphaarena_supabase_url', config.url);
+        localStorage.setItem('alphaarena_supabase_key', config.key);
     } catch (e: any) {
         console.error("Supabase init failed", getSupabaseErrorMessage(e));
     }
 };
 
 export const getCloudConfig = (): CloudConfig | null => {
-    const url = localStorage.getItem('tradeview_supabase_url');
-    const key = localStorage.getItem('tradeview_supabase_key');
+    const url = localStorage.getItem('alphaarena_supabase_url');
+    const key = localStorage.getItem('alphaarena_supabase_key');
     if (url && key) return { url, key };
     return null;
 };

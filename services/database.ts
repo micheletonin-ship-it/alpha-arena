@@ -12,7 +12,7 @@ import { ScanReport } from '../types'; // Import ScanReport
 const DELAY_MS = 300; 
 
 // --- DB KEYS VERSIONING (To force reset) ---
-const DB_PREFIX = 'tradeview_db_v4_'; // Version 4
+const DB_PREFIX = 'alphaarena_db_v4_'; // Version 4
 
 // --- INITIAL SEED DATA (Clean Slate) ---
 const SEED_DATA = {
