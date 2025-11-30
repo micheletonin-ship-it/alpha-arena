@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Stock, Theme } from '../types';
-import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, ExternalLink } from 'lucide-react';
 
 interface StockCardProps {
   stock: Stock;
@@ -11,6 +11,57 @@ interface StockCardProps {
 
 export const StockCard: React.FC<StockCardProps> = ({ stock, theme = 'dark', onTrade }) => {
   const isPositive = stock.changePercent >= 0;
+
+  // Crypto names mapping
+  const CRYPTO_NAMES: Record<string, string> = {
+    'BTC-USD': 'Bitcoin',
+    'ETH-USD': 'Ethereum',
+    'BNB-USD': 'Binance Coin',
+    'SOL-USD': 'Solana',
+    'ADA-USD': 'Cardano',
+    'XRP-USD': 'Ripple',
+    'DOGE-USD': 'Dogecoin',
+    'DOT-USD': 'Polkadot',
+    'MATIC-USD': 'Polygon',
+    'AVAX-USD': 'Avalanche',
+  };
+
+  // Get display name (crypto real name or stock name)
+  const getDisplayName = () => {
+    if (stock.symbol.includes('-USD')) {
+      return CRYPTO_NAMES[stock.symbol] || stock.name;
+    }
+    return stock.name;
+  };
+
+  // Get badge type and label
+  const getBadgeInfo = () => {
+    // Crypto tickers
+    if (stock.symbol.includes('-USD')) {
+      return { label: 'CRYPTO', color: theme === 'dark' ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-700' };
+    }
+    
+    // NYSE stocks (major examples)
+    const nyseStocks = ['JPM', 'BAC', 'WFC', 'GS', 'C', 'XOM', 'CVX', 'KO', 'PG', 'WMT', 'HD', 'BA', 'CAT', 'GE'];
+    if (nyseStocks.includes(stock.symbol)) {
+      return { label: 'NYSE', color: theme === 'dark' ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700' };
+    }
+    
+    // Everything else defaults to NASDAQ
+    return { label: 'NASDAQ', color: theme === 'dark' ? 'bg-white/10 text-gray-400' : 'bg-gray-100 text-gray-500' };
+  };
+
+  // Generate Google Finance URL
+  const getGoogleFinanceUrl = () => {
+    // Check if it's a crypto ticker (contains -USD)
+    if (stock.symbol.includes('-USD')) {
+      return `https://www.google.com/finance/quote/${stock.symbol}`;
+    }
+    // For regular stocks, determine exchange
+    const badgeInfo = getBadgeInfo();
+    const exchange = badgeInfo.label === 'NYSE' ? 'NYSE' : 'NASDAQ';
+    return `https://www.google.com/finance/quote/${stock.symbol}:${exchange}`;
+  };
 
   // Compact sparkline dimensions
   const width = 120;
@@ -52,12 +103,21 @@ export const StockCard: React.FC<StockCardProps> = ({ stock, theme = 'dark', onT
             <h3 className={`font-bold tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                 {stock.symbol}
             </h3>
-            <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${theme === 'dark' ? 'bg-white/10 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                NAS
+            <a 
+              href={getGoogleFinanceUrl()} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className={`transition-colors hover:scale-110 ${theme === 'dark' ? 'text-gray-400 hover:text-neonGreen' : 'text-gray-500 hover:text-blue-600'}`}
+              title="View on Google Finance"
+            >
+              <ExternalLink size={14} />
+            </a>
+            <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${getBadgeInfo().color}`}>
+                {getBadgeInfo().label}
             </span>
         </div>
         <span className="truncate text-xs text-gray-500 dark:text-gray-400">
-            {stock.name}
+            {getDisplayName()}
         </span>
       </div>
 
@@ -98,16 +158,6 @@ export const StockCard: React.FC<StockCardProps> = ({ stock, theme = 'dark', onT
             }`}
          >
             Buy
-         </button>
-         <button 
-            onClick={() => onTrade && onTrade(stock, 'sell')}
-            className={`hidden sm:block rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                theme === 'dark' 
-                ? 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white' 
-                : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-900'
-            }`}
-         >
-            Sell
          </button>
       </div>
 

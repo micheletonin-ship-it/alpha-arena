@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reset Price Cache</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            padding: 40px;
+            background: #2a2a2a;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        button {
+            background: #00ff88;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #00dd77;
+        }
+        .success {
+            color: #00ff88;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        .info {
+            color: #888;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Reset Price Cache</h1>
+        <p class="info">Questo resetterà i prezzi crypto ai valori reali</p>
+        <button onclick="resetCache()">Reset Cache Prezzi</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function resetCache() {
+            try {
+                // Remove old cache
+                localStorage.removeItem('mock_prices_cache');
+                
+                // Set new realistic crypto prices
+                const newCache = {
+                    'BTCUSD': 95000,
+                    'BTC-USD': 95000,
+                    'ETHUSD': 3500,
+                    'ETH-USD': 3500,
+                    'BNBUSD': 650,
+                    'BNB-USD': 650,
+                    'SOLUSD': 240,
+                    'SOL-USD': 240,
+                    'ADAUSD': 1.05,
+                    'ADA-USD': 1.05,
+                    'XRPUSD': 1.40,
+                    'XRP-USD': 1.40,
+                    'DOGEUSD': 0.40,
+                    'DOGE-USD': 0.40,
+                    'DOTUSD': 7.50,
+                    'DOT-USD': 7.50,
+                    'MATICUSD': 0.95,
+                    'MATIC-USD': 0.95,
+                    'AVAXUSD': 42,
+                    'AVAX-USD': 42
+                };
+                
+                localStorage.setItem('mock_prices_cache', JSON.stringify(newCache));
+                
+                document.getElementById('result').innerHTML = 
+                    '<div class="success">✅ Cache resettata con successo!<br><br>' +
+                    'Prezzi impostati:<br>' +
+                    'BTC: $95,000<br>' +
+                    'ETH: $3,500<br>' +
+                    'BNB: $650<br>' +
+                    '<br><strong>Ricarica l\'app per vedere i nuovi prezzi!</strong></div>';
+                
+                // Auto-reload after 2 seconds
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+                
+            } catch (e) {
+                document.getElementById('result').innerHTML = 
+                    '<div style="color:red">❌ Errore: ' + e.message + '</div>';
+            }
+        }
+    </script>
+</body>
+</html>

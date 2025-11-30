@@ -113,6 +113,7 @@ const FALLBACK_STOCKS: Stock[] = [
 ];
 
 const STOCK_NAMES: Record<string, string> = {
+    // Major Stocks
     'AAPL': 'Apple Inc.',
     'NVDA': 'NVIDIA Corp.',
     'MSFT': 'Microsoft Corp.',
@@ -178,42 +179,124 @@ const STOCK_NAMES: Record<string, string> = {
     'SO': 'The Southern Company',
     'DUK': 'Duke Energy Corporation',
     'AEP': 'American Electric Power Company, Inc.',
-    'NEE': 'NextEra Energy, Inc.'
+    'NEE': 'NextEra Energy, Inc.',
+    // Cryptocurrencies (with dash format)
+    'BTC-USD': 'Bitcoin',
+    'ETH-USD': 'Ethereum',
+    'BNB-USD': 'Binance Coin',
+    'SOL-USD': 'Solana',
+    'ADA-USD': 'Cardano',
+    'XRP-USD': 'Ripple',
+    'DOGE-USD': 'Dogecoin',
+    'DOT-USD': 'Polkadot',
+    'MATIC-USD': 'Polygon',
+    'AVAX-USD': 'Avalanche',
+    // Cryptocurrencies (Alpaca format without dash)
+    'BTCUSD': 'Bitcoin',
+    'ETHUSD': 'Ethereum',
+    'BNBUSD': 'Binance Coin',
+    'SOLUSD': 'Solana',
+    'ADAUSD': 'Cardano',
+    'XRPUSD': 'Ripple',
+    'DOGEUSD': 'Dogecoin',
+    'DOTUSD': 'Polkadot',
+    'MATICUSD': 'Polygon',
+    'AVAXUSD': 'Avalanche',
 };
 
 const generateMockData = (symbols: string[]): Stock[] => {
-    return symbols.map(symbol => {
+    // Load price cache from localStorage
+    const priceCache = JSON.parse(localStorage.getItem('mock_prices_cache') || '{}');
+    const updatedCache: Record<string, number> = {};
+    
+    const stocks = symbols.map(symbol => {
         const existing = FALLBACK_STOCKS.find(s => s.symbol === symbol);
         const seed = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        const basePrice = existing ? existing.price : (seed % 500) + 50; 
+        
+        // Use realistic base prices for crypto
+        let initialBasePrice: number;
+        if (symbol === 'BTCUSD' || symbol === 'BTC-USD') {
+            initialBasePrice = 95000; // Bitcoin ~$95k
+        } else if (symbol === 'ETHUSD' || symbol === 'ETH-USD') {
+            initialBasePrice = 3500; // Ethereum ~$3.5k
+        } else if (symbol === 'BNBUSD' || symbol === 'BNB-USD') {
+            initialBasePrice = 650; // Binance Coin ~$650
+        } else if (symbol === 'SOLUSD' || symbol === 'SOL-USD') {
+            initialBasePrice = 240; // Solana ~$240
+        } else if (symbol === 'ADAUSD' || symbol === 'ADA-USD') {
+            initialBasePrice = 1.05; // Cardano ~$1
+        } else if (symbol === 'XRPUSD' || symbol === 'XRP-USD') {
+            initialBasePrice = 1.40; // Ripple ~$1.4
+        } else if (symbol === 'DOGEUSD' || symbol === 'DOGE-USD') {
+            initialBasePrice = 0.40; // Dogecoin ~$0.4
+        } else if (symbol === 'DOTUSD' || symbol === 'DOT-USD') {
+            initialBasePrice = 7.50; // Polkadot ~$7.5
+        } else if (symbol === 'MATICUSD' || symbol === 'MATIC-USD') {
+            initialBasePrice = 0.95; // Polygon ~$0.95
+        } else if (symbol === 'AVAXUSD' || symbol === 'AVAX-USD') {
+            initialBasePrice = 42; // Avalanche ~$42
+        } else {
+            initialBasePrice = existing ? existing.price : (seed % 500) + 50;
+        }
+        
         const baseName = existing ? existing.name : STOCK_NAMES[symbol] || `${symbol} Corp`;
-        const volatility = 1.5; 
-        const changePercent = (Math.random() * volatility * 2) - volatility; 
-        const newPrice = Math.max(0.01, basePrice * (1 + (changePercent / 100)));
+        
+        // Get previous price from cache, or use initial base price
+        const previousPrice = priceCache[symbol] || initialBasePrice;
+        
+        // Apply realistic incremental variation (+/- 3% max)
+        const volatility = 0.03; // 3% max variation per update
+        const variation = (Math.random() - 0.5) * 2 * volatility; // Range: -3% to +3%
+        const newPrice = Math.max(0.01, previousPrice * (1 + variation));
+        
+        // Calculate actual change percent based on previous price
+        const changePercent = ((newPrice - previousPrice) / previousPrice) * 100;
+        
+        // Store new price in cache
+        updatedCache[symbol] = newPrice;
         
         return {
             symbol,
             name: baseName,
-            price: newPrice,
+            price: parseFloat(newPrice.toFixed(2)),
             changePercent: parseFloat(changePercent.toFixed(2)),
             marketCap: existing?.marketCap || '10B',
             volume: existing?.volume || '1.5M'
         };
     });
+    
+    // Save updated cache to localStorage
+    localStorage.setItem('mock_prices_cache', JSON.stringify(updatedCache));
+    
+    return stocks;
 };
 
 export const fetchMarketData = async (additionalSymbols: string[] = [], alpacaKey: string | null, alpacaSecret: string | null): Promise<MarketDataResponse & { provider: 'Alpaca' | 'Google' | 'Mock' }> => {
   const uniqueSymbols = Array.from(new Set([...SYMBOLS, ...additionalSymbols]));
+  
+  console.log('fetchMarketData: Requested symbols:', uniqueSymbols);
 
   if (alpacaKey && alpacaSecret) {
       try {
           const alpacaData = await fetchAlpacaData(alpacaKey, alpacaSecret, uniqueSymbols);
-          if (alpacaData) {
+          if (alpacaData && alpacaData.length > 0) {
+              console.log('fetchMarketData: Alpaca returned', alpacaData.length, 'stocks');
+              
+              // Check if there are missing symbols (e.g., crypto that Alpaca doesn't support)
+              const returnedSymbols = new Set(alpacaData.map(s => s.symbol.toUpperCase()));
+              const missingSymbols = uniqueSymbols.filter(s => !returnedSymbols.has(s.toUpperCase()));
+              
+              if (missingSymbols.length > 0) {
+                  console.log('fetchMarketData: Missing symbols from Alpaca, generating mock data for:', missingSymbols);
+                  const mockData = generateMockData(missingSymbols);
+                  const combinedData = [...alpacaData, ...mockData];
+                  return { stocks: combinedData, sources: [], provider: 'Alpaca' };
+              }
+              
               return { stocks: alpacaData, sources: [], provider: 'Alpaca' };
           }
       } catch (e) {
-          // Silent catch for Alpaca - it falls back to GenAI/Mock
-          // console.warn("Alpaca fetch failed, falling back.");
+          console.log('fetchMarketData: Alpaca failed, falling back to Mock');
       }
   }
 
@@ -223,6 +306,7 @@ export const fetchMarketData = async (additionalSymbols: string[] = [], alpacaKe
       return { ...genAiData, provider: 'Google' };
   } catch (error) {
       // Graceful fallback to Mock data without noise
+      console.log('fetchMarketData: GenAI failed, using Mock data for all symbols');
       return { stocks: generateMockData(uniqueSymbols), sources: [], provider: 'Mock' };
   }
 };
@@ -264,9 +348,11 @@ export const getAIStrategyRecommendation = async (symbol: string): Promise<{ rec
 // --- AUTOMATED SCANNER LOGIC (AI-first with Heuristic Fallback) ---
 
 
-const generateHeuristicScanResults = (marketData: Stock[], strategies: Strategy[]): ScanResult[] => {
+const generateHeuristicScanResults = (marketData: Stock[], strategies: Strategy[], allowedTickers?: string[]): ScanResult[] => {
     const heuristicResults: ScanResult[] = [];
-    const scanCandidates = [
+    
+    // Use championship allowed tickers if provided, otherwise fallback to default scan candidates
+    const scanCandidates = allowedTickers && allowedTickers.length > 0 ? allowedTickers : [
         'NVDA', 'AMD', 'TSLA', 'MSTR', 'COIN', 'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 
         'JPM', 'BAC', 'GS', 'UNH', 'LLY', 
         'WMT', 'PG', 'KO', 'PEP', 'COST', 
@@ -274,7 +360,20 @@ const generateHeuristicScanResults = (marketData: Stock[], strategies: Strategy[
         'SBUX', 'NKE', 'PYPL', 'CRM', 'CSCO' 
     ];
 
-    const availableStocks = marketData.length > 0 ? marketData.filter(s => scanCandidates.includes(s.symbol)) : generateMockData(scanCandidates);
+    // DEBUG: Log what we're working with
+    console.log('=== SCANNER DEBUG ===');
+    console.log('Scan candidates:', scanCandidates);
+    console.log('Market data symbols:', marketData.map(s => s.symbol));
+    console.log('Market data length:', marketData.length);
+
+    // Fix: Use case-insensitive matching for ticker comparison
+    const scanCandidatesUpper = scanCandidates.map(s => s.toUpperCase());
+    const availableStocks = marketData.length > 0 
+        ? marketData.filter(s => scanCandidatesUpper.includes(s.symbol.toUpperCase())) 
+        : generateMockData(scanCandidates);
+    
+    console.log('Available stocks after filter:', availableStocks.map(s => s.symbol));
+    console.log('Available stocks count:', availableStocks.length);
     const effectiveStrategies = strategies.length > 0 ? strategies.filter(s => ['strat_conservative', 'strat_balanced', 'strat_aggressive'].includes(s.id)) : [ // Use a minimal set of system strategies if none are provided
         { id: 'strat_conservative', name: 'Conservative Guard', description: '', stopLossPercentage: 3, takeProfitTiers: [] },
         { id: 'strat_balanced', name: 'Balanced Growth', description: '', stopLossPercentage: 5, takeProfitTiers: [] },
@@ -330,10 +429,29 @@ const generateHeuristicScanResults = (marketData: Stock[], strategies: Strategy[
 export const scanMarketOpportunities = async (marketData: Stock[], strategies: Strategy[], championshipId: string): Promise<ScanReport> => {
     const scanStartTime = Date.now();
 
+    // Get allowed tickers from championship if ticker restrictions are enabled
+    let allowedTickers: string[] | undefined = undefined;
+    
+    try {
+        const championship = await getChampionshipById(championshipId);
+        console.log('Scanner: Championship data:', championship);
+        console.log('Scanner: ticker_restriction_enabled:', championship?.ticker_restriction_enabled);
+        console.log('Scanner: allowed_tickers:', championship?.allowed_tickers);
+        
+        if (championship?.ticker_restriction_enabled && championship.allowed_tickers) {
+            allowedTickers = championship.allowed_tickers;
+            console.log(`Scanner: Using ${allowedTickers.length} championship-allowed tickers for scan:`, allowedTickers);
+        } else {
+            console.log('Scanner: No ticker restrictions, using default scan candidates');
+        }
+    } catch (error) {
+        console.error("Scanner: Error fetching championship tickers, using default scan candidates", error);
+    }
+
     // The scanner will now ALWAYS run in heuristic mode.
     // AI-powered analysis is explicitly disabled for this feature.
     return {
-        results: generateHeuristicScanResults(marketData, strategies),
+        results: generateHeuristicScanResults(marketData, strategies, allowedTickers),
         source: 'Heuristic', // Always 'Heuristic'
         timestamp: Date.now(),
         aiErrorMessage: null, // No AI error as AI is not attempted
@@ -350,7 +468,18 @@ const getAlpacaBaseUrl = (key: string) => {
 };
 
 const fetchAlpacaData = async (key: string, secret: string, symbols: string[]): Promise<Stock[] | null> => {
-    const symbolStr = symbols.map(s => s.toUpperCase()).join(',');
+    // Create mapping between original symbols and Alpaca-formatted symbols
+    // Alpaca uses format without dashes (e.g., BTCUSD instead of BTC-USD)
+    const symbolMap: Record<string, string> = {};
+    const alpacaSymbols: string[] = [];
+    
+    symbols.forEach(symbol => {
+        const alpacaSymbol = symbol.replace('-', '').toUpperCase();
+        symbolMap[alpacaSymbol] = symbol; // Map BTCUSD -> BTC-USD
+        alpacaSymbols.push(alpacaSymbol);
+    });
+    
+    const symbolStr = alpacaSymbols.join(',');
     const url = `https://data.alpaca.markets/v2/stocks/snapshots?symbols=${symbolStr}&feed=iex`;
 
     try {
@@ -378,9 +507,11 @@ const fetchAlpacaData = async (key: string, secret: string, symbols: string[]): 
         const data = await response.json();
         const stocks: Stock[] = [];
 
-        for (const symbol of symbols) {
-            const item = data[symbol];
+        // Iterate through the Alpaca-formatted symbols
+        for (const alpacaSymbol of alpacaSymbols) {
+            const item = data[alpacaSymbol];
             if (item) {
+                const originalSymbol = symbolMap[alpacaSymbol]; // Convert back to original format
                 const price = item.latestTrade?.p || item.dailyBar?.c || 0;
                 const prevClose = item.prevDailyBar?.c || item.dailyBar?.o || price;
                 
@@ -393,8 +524,8 @@ const fetchAlpacaData = async (key: string, secret: string, symbols: string[]): 
                 const volStr = vol > 1000000 ? `${(vol/1000000).toFixed(1)}M` : vol > 1000 ? `${(vol/1000).toFixed(1)}K` : vol.toString();
 
                 stocks.push({
-                    symbol: symbol,
-                    name: STOCK_NAMES[symbol] || symbol,
+                    symbol: originalSymbol, // Use original format (e.g., BTC-USD)
+                    name: STOCK_NAMES[originalSymbol] || STOCK_NAMES[alpacaSymbol] || originalSymbol,
                     price: price,
                     changePercent: parseFloat(changePercent.toFixed(2)),
                     marketCap: 'N/A',

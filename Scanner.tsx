@@ -108,7 +108,18 @@ export const Scanner: React.FC<ScannerProps> = ({
           <div key={item.symbol} className={`p-4 mb-3 rounded-xl border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200 shadow-sm'}`}>
               <div className="flex justify-between items-start mb-2">
                   <div>
-                      <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{stockInfo.symbol}</h3>
+                      <div className="flex items-center gap-2">
+                          <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{stockInfo.symbol}</h3>
+                          <a 
+                              href={`https://www.google.com/finance/quote/${stockInfo.symbol}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`transition-colors hover:scale-110 ${theme === 'dark' ? 'text-gray-400 hover:text-neonGreen' : 'text-gray-500 hover:text-blue-600'}`}
+                              title="View on Google Finance"
+                          >
+                              <ExternalLink size={14} />
+                          </a>
+                      </div>
                       <p className="text-xs text-gray-500">{stockInfo.name}</p>
                   </div>
                   <div className={`text-right font-mono ${stockInfo.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>

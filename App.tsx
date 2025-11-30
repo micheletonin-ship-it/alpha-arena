@@ -197,8 +197,17 @@ const AppContent: React.FC = () => {
    * @param championshipId The ID of the championship context. MANDATORY.
    */
   const runGlobalBackgroundScan = async (currentStrategies: Strategy[], currentMarketData: Stock[], championshipId: string) => { // UPDATED: championshipId mandatory
+      console.log('=== GLOBAL BACKGROUND SCAN START ===');
+      console.log('Strategies count:', currentStrategies.length);
+      console.log('Market data count:', currentMarketData.length);
+      console.log('Championship ID:', championshipId);
+      console.log('Is already scanning:', isScanningGlobalRef.current);
+      
       // Don't run if market data or strategies aren't loaded, or if a scan is already in progress
-      if (currentStrategies.length === 0 || isScanningGlobalRef.current || currentMarketData.length === 0) return; 
+      if (currentStrategies.length === 0 || isScanningGlobalRef.current || currentMarketData.length === 0) {
+          console.log('SCAN ABORTED - Missing data or already scanning');
+          return;
+      }
 
       isScanningGlobalRef.current = true; // Set flag to prevent multiple simultaneous scans
       setIsScanning(true); // Update UI state
@@ -502,16 +511,47 @@ const AppContent: React.FC = () => {
       const currentWatched = watchedSymbolsRef.current;
 
       const portfolioSymbols = currentHoldings.map(h => h.symbol);
-      const allDynamicSymbols = Array.from(new Set([...portfolioSymbols, ...currentWatched])); // Deduplicate
       
-      // Get Alpaca keys from currentUser
-      const alpacaKeys = currentUserRef.current ? await db.getAlpacaCredentials(currentUserRef.current.id) : { key: null, secret: null };
-      const data = await fetchMarketData(allDynamicSymbols, alpacaKeys.key, alpacaKeys.secret); // Pass keys to fetchMarketData
+      // Include championship whitelist tickers in fetch if applicable
+      let championshipTickers: string[] = [];
+      if (currentChampionshipIdRef.current) {
+        try {
+          const championship = await db.getChampionshipById(currentChampionshipIdRef.current);
+          if (championship?.ticker_restriction_enabled && championship.allowed_tickers) {
+            championshipTickers = championship.allowed_tickers;
+          }
+        } catch (error) {
+          console.error("Error fetching championship tickers:", error);
+        }
+      }
+      
+      const allDynamicSymbols = Array.from(new Set([...portfolioSymbols, ...currentWatched, ...championshipTickers])); // Deduplicate and include championship tickers
+      
+      // Get Alpaca keys from shared config (set by admin in Settings)
+      const alpacaKey = APP_CREDENTIALS.ALPACA_KEY || null;
+      const alpacaSecret = APP_CREDENTIALS.ALPACA_SECRET || null;
+      
+      // DEBUG: Log Alpaca keys status
+      console.log('=== ALPACA KEYS DEBUG ===');
+      console.log('ALPACA_KEY:', alpacaKey ? `${alpacaKey.substring(0, 6)}...` : 'NOT FOUND');
+      console.log('ALPACA_SECRET:', alpacaSecret ? `${alpacaSecret.substring(0, 6)}...` : 'NOT FOUND');
+      console.log('Keys valid:', !!alpacaKey && !!alpacaSecret);
+      
+      const data = await fetchMarketData(allDynamicSymbols, alpacaKey, alpacaSecret); // Pass keys to fetchMarketData
       
       setDataProvider(data.provider);
 
       if (data.stocks.length > 0) {
-        const sortedStocks = data.stocks.sort((a, b) => {
+        // Apply championship ticker filtering if active
+        let filteredStocks = data.stocks;
+        if (currentChampionshipIdRef.current) {
+          filteredStocks = await marketService.filterAllowedTickers(
+            data.stocks,
+            currentChampionshipIdRef.current
+          );
+        }
+
+        const sortedStocks = filteredStocks.sort((a, b) => {
              const aWatched = currentWatched.includes(a.symbol) || portfolioSymbols.includes(a.symbol);
              const bWatched = currentWatched.includes(b.symbol) || portfolioSymbols.includes(b.symbol);
              if (aWatched && !bWatched) return -1;
@@ -553,11 +593,11 @@ const AppContent: React.FC = () => {
         // Initial fetch
         getData(); 
         
-        // Ensure alpacaKeys are fetched correctly, even if currentUser is null.
-        // If currentUser is null, db.getAlpacaCredentials handles it correctly.
-        const alpacaKeys = currentUser ? await db.getAlpacaCredentials(currentUser.id) : { key: null, secret: null };
-        const hasAlpaca = !!alpacaKeys.key && !!alpacaKeys.secret; 
-        const intervalTime = hasAlpaca ? 30000 : 60000; 
+        // Get Alpaca keys from shared config - used for determining polling interval
+        const alpacaKey = APP_CREDENTIALS.ALPACA_KEY || null;
+        const alpacaSecret = APP_CREDENTIALS.ALPACA_SECRET || null;
+        const hasAlpaca = !!alpacaKey && !!alpacaSecret; 
+        const intervalTime = hasAlpaca ? 120000 : 300000; // Rilassato: 2 min con Alpaca, 5 min senza
 
         intervalId = setInterval(getData, intervalTime); 
     };
@@ -684,6 +724,14 @@ const AppContent: React.FC = () => {
       
       const symbol = searchQuery.toUpperCase().trim();
       
+      // Validate ticker is allowed in championship
+      const validation = await marketService.validateTickerForChampionship(symbol, currentChampionshipId);
+      if (!validation.isValid) {
+          alert(validation.message || 'Ticker non consentito in questo campionato');
+          setSearchQuery('');
+          return;
+      }
+      
       if (!watchedSymbols.includes(symbol)) {
           setWatchedSymbols(prev => [symbol, ...prev]);
       }
@@ -700,7 +748,15 @@ const AppContent: React.FC = () => {
           setDataProvider(data.provider);
           
           if (data.stocks.length > 0) {
-              setStocks(data.stocks);
+              // Apply championship ticker filtering
+              let filteredStocks = data.stocks;
+              if (currentChampionshipId) {
+                  filteredStocks = await marketService.filterAllowedTickers(
+                      data.stocks,
+                      currentChampionshipId
+                  );
+              }
+              setStocks(filteredStocks);
           }
       } catch (e) {
           console.error("Search failed", e);
