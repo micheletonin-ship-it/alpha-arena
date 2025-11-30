@@ -537,6 +537,7 @@ export const addTransaction = async (userId: string, tx: Transaction, championsh
 
   if (supabase) {
       try {
+          console.log(`[DB] Adding transaction for user ${userId}, championship ${championshipId}:`, tx);
           const { error } = await supabase.from('transactions').insert({
               id: tx.id,
               user_email: userId,
@@ -550,10 +551,15 @@ export const addTransaction = async (userId: string, tx: Transaction, championsh
               price: tx.price,
               championship_id: championshipId, // UPDATED: mandatory champId
           });
-          if (error) console.error("Cloud Add Transaction Error:", getSupabaseErrorMessage(error));
+          if (error) {
+              console.error("Cloud Add Transaction Error:", getSupabaseErrorMessage(error));
+              throw new Error(`Failed to add transaction: ${getSupabaseErrorMessage(error)}`); // FIX: Throw error instead of silent fail
+          }
+          console.log(`[DB] Transaction added successfully`);
           return;
       } catch (e: any) {
           console.error("Cloud Add Transaction Error:", getSupabaseErrorMessage(e));
+          throw e; // FIX: Re-throw the error
       }
   }
 
@@ -1061,20 +1067,25 @@ export const deleteChampionship = async (id: string): Promise<void> => {
 // with that championship_id.
 // This function initializes a user's participation by giving them starting cash.
 export const joinChampionship = async (userId: string, championship: Championship): Promise<void> => {
+    console.log(`[DB] joinChampionship called for user ${userId}, championship ${championship.id}`);
     const supabase = getSupabase();
     if (supabase) {
         try {
             // First, ensure the user doesn't already have holdings/transactions in this championship.
             // If they do, this implies they've already joined/reset.
+            console.log(`[DB] Checking for existing user data...`);
             const existingHoldings = await getHoldings(userId, championship.id);
             const existingTransactions = await getTransactions(userId, championship.id);
 
+            console.log(`[DB] Existing holdings: ${existingHoldings.length}, transactions: ${existingTransactions.length}`);
+            
             if (existingHoldings.length > 0 || existingTransactions.length > 0) {
-                console.log(`User ${userId} already has data for championship ${championship.id}. Skipping initial cash.`);
+                console.log(`[DB] User ${userId} already has data for championship ${championship.id}. Skipping initial cash.`);
                 return;
             }
 
             // Add initial cash transaction
+            console.log(`[DB] Creating initial deposit transaction of ${championship.starting_cash}...`);
             const initialDeposit: Transaction = {
                 id: `tx_${Date.now()}_champ_start`,
                 type: 'deposit',
@@ -1085,8 +1096,9 @@ export const joinChampionship = async (userId: string, championship: Championshi
                 championshipId: championship.id,
             };
             await addTransaction(userId, initialDeposit, championship.id);
+            console.log(`[DB] User ${userId} successfully enrolled in championship ${championship.id}`);
         } catch (e: any) {
-            console.error("Cloud Join Championship Error:", getSupabaseErrorMessage(e));
+            console.error("[DB] Cloud Join Championship Error:", getSupabaseErrorMessage(e));
             throw new Error(`Failed to join championship: ${getSupabaseErrorMessage(e)}`);
         }
     } else {
@@ -1141,6 +1153,7 @@ export const leaveChampionship = async (userId: string, championshipId: string):
 
 // This function identifies users who have participated in a championship
 export const getUserChampionshipParticipation = async (championshipId: string): Promise<string[]> => {
+    console.log(`[DB] getUserChampionshipParticipation for championship ${championshipId}`);
     const supabase = getSupabase();
     if (supabase) {
         try {
@@ -1157,10 +1170,13 @@ export const getUserChampionshipParticipation = async (championshipId: string): 
             if (holdingsError) console.error("Error fetching participant holdings:", getSupabaseErrorMessage(holdingsError));
             if (transactionsError) console.error("Error fetching participant transactions:", getSupabaseErrorMessage(transactionsError));
 
+            console.log(`[DB] Found holdings: ${holdingsData?.length || 0}, transactions: ${transactionsData?.length || 0}`);
+
             const participantEmails = new Set<string>();
             if (holdingsData) holdingsData.forEach(h => participantEmails.add(h.user_email));
             if (transactionsData) transactionsData.forEach(t => participantEmails.add(t.user_email));
             
+            console.log(`[DB] Unique participants: ${participantEmails.size}`, Array.from(participantEmails));
             return Array.from(participantEmails);
 
         } catch (e: any) {
