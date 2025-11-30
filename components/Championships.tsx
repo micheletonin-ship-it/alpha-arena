@@ -1241,6 +1241,7 @@ export const Championships: React.FC<ChampionshipsProps> = ({ theme, currentUser
 
   // NEW: Prize Pool Cache State
   const [prizePoolsCache, setPrizePoolsCache] = useState<Map<string, PrizePoolInfo>>(new Map());
+  const [prizePoolRefreshTrigger, setPrizePoolRefreshTrigger] = useState(0); // NEW: Force prize pool recalculation
 
 
     // NO LONGER NEEDED: This useEffect was the source of the problem.
@@ -1333,7 +1334,7 @@ export const Championships: React.FC<ChampionshipsProps> = ({ theme, currentUser
     if (championships.length > 0) {
       calculateAllPrizePools();
     }
-  }, [championships]);
+  }, [championships, prizePoolRefreshTrigger]); // UPDATED: Added prizePoolRefreshTrigger dependency
 
   const handleCreateChampionship = async (data: Omit<Championship, 'id' | 'created_at' | 'status' | 'admin_user_id'>) => {
     setIsCreatingChampionship(true);
@@ -1433,7 +1434,8 @@ export const Championships: React.FC<ChampionshipsProps> = ({ theme, currentUser
     try {
         await db.joinChampionship(currentUser.id, champ);
         await onSetChampionshipContext(champ);
-        loadChampionships();
+        await loadChampionships();
+        setPrizePoolRefreshTrigger(prev => prev + 1); // NEW: Force prize pool recalculation
         setIsPaymentModalOpen(false); // Close modal after successful enrollment
     } catch (e: any) {
         setPaymentError(e.message || "Iscrizione fallita dopo il pagamento. Riprova.");
