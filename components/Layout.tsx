@@ -67,7 +67,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, toggleTheme, ac
           <div className="flex items-center gap-2">
             <div className={`h-8 w-8 rounded-lg bg-gradient-to-tr from-neonGreen to-cyan-500`}></div>
             <span className={`text-xl font-bold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              TRADE<span className="text-neonGreen">VIEW</span>
+              ALPHA<span className="text-neonGreen">ARENA</span>
             </span>
           </div>
         </div>
@@ -180,7 +180,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, toggleTheme, ac
                 <div className="flex items-center gap-2">
                   <div className={`h-8 w-8 rounded-lg bg-gradient-to-tr from-neonGreen to-cyan-500`}></div>
                   <span className={`text-xl font-bold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                    TRADE<span className="text-neonGreen">VIEW</span>
+                    ALPHA<span className="text-neonGreen">ARENA</span>
                   </span>
                 </div>
                 <button onClick={() => setIsMobileMenuOpen(false)} className={`p-2 rounded-lg ${theme === 'dark' ? 'text-gray-400 hover:bg-white/10 hover:text-white' : 'text-gray-500 hover:bg-gray-100'}`}>
