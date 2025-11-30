@@ -23,8 +23,29 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading = false 
   };
 
   return (
-    <div className={`flex min-h-screen w-full items-center justify-center transition-colors duration-300 ${theme === 'dark' ? 'bg-[#121212]' : 'bg-gray-50'}`}>
-      <div className="flex w-full max-w-5xl overflow-hidden rounded-3xl shadow-2xl mx-4">
+    <div className={`flex min-h-screen w-full flex-col items-center justify-center transition-colors duration-300 ${theme === 'dark' ? 'bg-gradient-to-br from-[#121212] via-[#1a1a1a] to-[#0a0a0a]' : 'bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100'}`}>
+      
+      {/* Mobile Hero Section - Only visible on mobile */}
+      <div className="w-full max-w-md px-4 mb-8 md:hidden animate-in fade-in slide-in-from-top duration-700">
+        <div className="text-center space-y-6">
+          {/* Logo & Tagline */}
+          <div className="animate-in fade-in slide-in-from-top duration-500">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="h-12 w-12 rounded-xl bg-gradient-to-tr from-neonGreen to-cyan-500 shadow-lg shadow-neonGreen/50"></div>
+              <span className={`text-3xl font-bold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                ALPHA<span className="text-neonGreen">ARENA</span>
+              </span>
+            </div>
+            <p className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              Think Faster. Trade Smarter.<br/>
+              Win Bigger.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Login Card */}
+      <div className="flex w-full max-w-5xl overflow-hidden rounded-3xl shadow-2xl mx-4 animate-in fade-in zoom-in duration-500 delay-150">
         
         {/* Left Side - Visuals */}
         <div className={`hidden w-1/2 flex-col justify-between p-12 md:flex ${theme === 'dark' ? 'bg-[#1E1E1E]' : 'bg-blue-600'}`}>
@@ -32,36 +53,21 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading = false 
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-neonGreen to-cyan-500"></div>
                 <span className={`text-xl font-bold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-white'}`}>
-                  TRADE<span className="text-neonGreen">VIEW</span>
+                  ALPHA<span className="text-neonGreen">ARENA</span>
                 </span>
               </div>
-              <div className="mt-12 space-y-6">
-                <h1 className="text-4xl font-bold leading-tight text-white">
-                  {isLogin ? "Welcome back to the future of trading." : "Start your journey with AlphaArena."}
+              <div className="mt-16">
+                <h1 className="text-5xl font-bold leading-tight text-white">
+                  Think Faster. Trade Smarter.<br/>
+                  Win Bigger.
                 </h1>
-                <p className={`text-lg ${theme === 'dark' ? 'text-gray-400' : 'text-blue-100'}`}>
-                  Access real-time market data, AI-powered insights, and manage your portfolio with precision.
-                </p>
               </div>
            </div>
            
-           <div className="relative h-64 w-full">
-              {/* Abstract decorative elements */}
-              <div className="absolute bottom-0 left-0 h-48 w-48 rounded-full bg-neonGreen/20 blur-3xl"></div>
-              <div className="absolute right-10 top-10 h-32 w-32 rounded-full bg-blue-500/20 blur-3xl"></div>
-              
-              <div className={`relative z-10 rounded-xl border p-4 backdrop-blur-md ${theme === 'dark' ? 'border-white/10 bg-white/5' : 'border-white/20 bg-white/10'}`}>
-                 <div className="flex items-center gap-3 mb-2">
-                    <div className="h-2 w-2 rounded-full bg-red-500"></div>
-                    <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
-                    <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                 </div>
-                 <div className="space-y-2">
-                    <div className="h-2 w-3/4 rounded bg-gray-500/30"></div>
-                    <div className="h-2 w-1/2 rounded bg-gray-500/30"></div>
-                    <div className="h-32 rounded bg-gradient-to-tr from-neonGreen/20 to-transparent"></div>
-                 </div>
-              </div>
+           {/* Bottom gradient decoration - abstract only */}
+           <div className="relative h-32 w-full">
+              <div className="absolute bottom-0 left-0 h-40 w-40 rounded-full bg-neonGreen/20 blur-3xl"></div>
+              <div className="absolute right-10 bottom-0 h-32 w-32 rounded-full bg-blue-500/20 blur-3xl"></div>
            </div>
         </div>
 
