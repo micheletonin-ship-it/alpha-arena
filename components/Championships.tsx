@@ -1313,12 +1313,15 @@ export const Championships: React.FC<ChampionshipsProps> = ({ theme, currentUser
   // NEW: Calculate prize pools for all championships with enrollment fees
   useEffect(() => {
     const calculateAllPrizePools = async () => {
+      console.log('[DEBUG] Calculating prize pools, trigger:', prizePoolRefreshTrigger);
       const newCache = new Map<string, PrizePoolInfo>();
       
       for (const champ of championships) {
         if (champ.enrollment_fee && champ.enrollment_fee > 0) {
           try {
+            console.log(`[DEBUG] Calculating prize pool for ${champ.name} (${champ.id})`);
             const poolInfo = await db.calculatePrizePool(champ.id);
+            console.log(`[DEBUG] Prize pool result for ${champ.name}:`, poolInfo);
             if (poolInfo) {
               newCache.set(champ.id, poolInfo);
             }
@@ -1328,6 +1331,7 @@ export const Championships: React.FC<ChampionshipsProps> = ({ theme, currentUser
         }
       }
       
+      console.log('[DEBUG] Prize pools cache updated:', newCache.size, 'entries');
       setPrizePoolsCache(newCache);
     };
 
@@ -1362,7 +1366,9 @@ export const Championships: React.FC<ChampionshipsProps> = ({ theme, currentUser
   const handleJoinChampionship = async (champ: Championship) => {
     if (!currentUser.id || !currentUser.email) return;
 
-    // --- NEW: Check for existing participation in other active/pending championships ---
+    // PHASE 1: MULTI-ENROLLMENT ALLOWED - Restriction temporarily removed for testing
+    // TODO PHASE 2: Add Championship Switcher UI for better UX
+    /* --- COMMENTED OUT: Check for existing participation in other active/pending championships ---
     const allActiveOrPendingChamps = championships.filter(c => 
         (c.status === 'pending' || c.status === 'active') && c.id !== champ.id
     );
@@ -1374,7 +1380,7 @@ export const Championships: React.FC<ChampionshipsProps> = ({ theme, currentUser
             return;
         }
     }
-    // --- END NEW CHECK ---
+    --- END COMMENTED CHECK --- */
 
     // Check for enrollment fee before joining
     if (champ.enrollment_fee && champ.enrollment_fee > 0) {
@@ -1410,12 +1416,15 @@ export const Championships: React.FC<ChampionshipsProps> = ({ theme, currentUser
 
   // NEW: Handle successful payment and then join
   const handlePaymentSuccess = async (champ: Championship) => {
+    console.log('[DEBUG] Payment success, enrolling user:', currentUser.email, 'to championship:', champ.name);
     if (!currentUser.id || !currentUser.email) {
         setPaymentError("Utente non loggato, impossibile completare l'iscrizione.");
         return;
     }
 
-    // --- NEW: Check for existing participation in other active/pending championships AFTER payment ---
+    // PHASE 1: MULTI-ENROLLMENT ALLOWED - Restriction temporarily removed for testing
+    // TODO PHASE 2: Add Championship Switcher UI for better UX
+    /* --- COMMENTED OUT: Check for existing participation in other active/pending championships AFTER payment ---
     // This is a safety check in case the user quickly pays then another champ activates/pending.
     const allActiveOrPendingChamps = championships.filter(c => 
         (c.status === 'pending' || c.status === 'active') && c.id !== champ.id
@@ -1429,14 +1438,24 @@ export const Championships: React.FC<ChampionshipsProps> = ({ theme, currentUser
             return;
         }
     }
-    // --- END NEW CHECK ---
+    --- END COMMENTED CHECK --- */
 
     try {
+        console.log('[DEBUG] Calling joinChampionship...');
         await db.joinChampionship(currentUser.id, champ);
+        console.log('[DEBUG] joinChampionship completed');
+        
         await onSetChampionshipContext(champ);
+        console.log('[DEBUG] Championship context set');
+        
         await loadChampionships();
+        console.log('[DEBUG] Championships reloaded');
+        
+        console.log('[DEBUG] Triggering prize pool refresh...');
         setPrizePoolRefreshTrigger(prev => prev + 1); // NEW: Force prize pool recalculation
+        
         setIsPaymentModalOpen(false); // Close modal after successful enrollment
+        console.log('[DEBUG] Payment success flow completed');
     } catch (e: any) {
         setPaymentError(e.message || "Iscrizione fallita dopo il pagamento. Riprova.");
         console.error("Errore nell'iscrizione al campionato dopo il pagamento:", e);
