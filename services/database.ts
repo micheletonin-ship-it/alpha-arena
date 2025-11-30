@@ -811,7 +811,7 @@ export const getGlobalScanReport = async (championshipId: string): Promise<ScanR
     if (supabase) {
         try {
             // No more `is('championship_id', null)`
-            const { data, error } = await supabase.from('agent_scan_results').select('timestamp, results, source, ai_error_message, championship_id').eq('user_email', GLOBAL_SCANNER_ID).eq('championship_id', championshipId).single(); // UPDATED: mandatory champId and select championship_id
+            const { data, error } = await supabase.from('agent_scan_results').select('timestamp, results, source, ai_error_message, championship_id').eq('user_email', GLOBAL_SCANNER_ID).eq('championship_id', championshipId).maybeSingle(); // FIX: Changed from .single() to .maybeSingle() to handle 0 or multiple results
             if (error) {
                 if (error.code === 'PGRST205') {
                     console.warn("Cloud Get Global Scan Report Warning: Table 'agent_scan_results' not found. Please ensure it is created in Supabase. Falling back to local storage if available.", getSupabaseErrorMessage(error));
