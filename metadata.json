@@ -1,0 +1,8 @@
+{
+  "name": "TradeView POC EVO",
+  "description": "A proof-of-concept trading dashboard featuring real-time market simulation, responsive glassmorphism design, and deep dark mode aesthetics.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ]
+}
