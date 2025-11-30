@@ -17,6 +17,13 @@ const getSupabaseErrorMessage = (e: any): string => {
 
 export const initCloud = (config: CloudConfig) => {
     if (!config.url || !config.key) return;
+    
+    // Prevent creating multiple instances - check if already initialized
+    if (supabase) {
+        console.log("Supabase client already initialized, skipping re-initialization.");
+        return;
+    }
+    
     try {
         supabase = createClient(config.url, config.key);
         localStorage.setItem('tradeview_supabase_url', config.url);
