@@ -526,9 +526,9 @@ const AppContent: React.FC = () => {
       
       const allDynamicSymbols = Array.from(new Set([...portfolioSymbols, ...currentWatched, ...championshipTickers])); // Deduplicate and include championship tickers
       
-      // Get Alpaca keys from shared config
-      const alpacaKey = APP_CREDENTIALS.ALPACA_KEY || null;
-      const alpacaSecret = APP_CREDENTIALS.ALPACA_SECRET || null;
+      // Get Alpaca keys from shared config, fallback to environment variables
+      const alpacaKey = APP_CREDENTIALS.ALPACA_KEY || import.meta.env.VITE_ALPACA_KEY || null;
+      const alpacaSecret = APP_CREDENTIALS.ALPACA_SECRET || import.meta.env.VITE_ALPACA_SECRET || null;
       
       // DEBUG: Log Alpaca keys status
       console.log('=== ALPACA CONNECTION ===');
