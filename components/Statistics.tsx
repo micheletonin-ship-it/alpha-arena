@@ -25,6 +25,13 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
     let totalTrades = 0;
     let totalBuyTrades = 0;
     let totalSellTrades = 0;
+    
+    // Performance metrics
+    let realizedPL = 0;
+    const tradePerformance: { symbol: string; profit: number; quantity: number; buyPrice: number; sellPrice: number }[] = [];
+    
+    // Track position data for realized P/L calculation
+    const positionTracker: Record<string, { totalBought: number; totalCost: number; avgBuyPrice: number }> = {};
 
     // Filter holdings and transactions based on championshipId passed from App.tsx
     // These props are already filtered by App.tsx, no need to filter again.
@@ -56,23 +63,67 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
       };
     });
 
-    transactions.forEach(tx => {
-        const amount = Number(tx.amount) || 0; // Ensure it's a number
+    // Sort transactions by date to process in chronological order
+    const sortedTransactions = [...transactions].sort((a, b) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    
+    sortedTransactions.forEach(tx => {
+        const amount = Number(tx.amount) || 0;
+        const quantity = Number(tx.quantity) || 0;
+        const price = Number(tx.price) || 0;
         
         if (tx.type === 'deposit') {
             totalDeposits += amount;
         } else if (tx.type === 'withdrawal') {
             totalWithdrawals += amount;
-        } else if (tx.type === 'buy') {
+        } else if (tx.type === 'buy' && tx.symbol) {
             totalBuyValue += amount;
             totalBuyTrades++;
             totalTrades++;
-        } else if (tx.type === 'sell') {
+            
+            // Track position for realized P/L calculation
+            if (!positionTracker[tx.symbol]) {
+                positionTracker[tx.symbol] = { totalBought: 0, totalCost: 0, avgBuyPrice: 0 };
+            }
+            positionTracker[tx.symbol].totalBought += quantity;
+            positionTracker[tx.symbol].totalCost += amount;
+            positionTracker[tx.symbol].avgBuyPrice = positionTracker[tx.symbol].totalCost / positionTracker[tx.symbol].totalBought;
+            
+        } else if (tx.type === 'sell' && tx.symbol) {
             totalSellValue += amount;
             totalSellTrades++;
             totalTrades++;
+            
+            // Calculate realized P/L for this sell
+            if (positionTracker[tx.symbol]) {
+                const avgBuyPrice = positionTracker[tx.symbol].avgBuyPrice;
+                const profit = (price - avgBuyPrice) * quantity;
+                realizedPL += profit;
+                
+                // Track individual trade performance
+                tradePerformance.push({
+                    symbol: tx.symbol,
+                    profit,
+                    quantity,
+                    buyPrice: avgBuyPrice,
+                    sellPrice: price
+                });
+                
+                // Update position tracker
+                positionTracker[tx.symbol].totalBought -= quantity;
+                positionTracker[tx.symbol].totalCost -= avgBuyPrice * quantity;
+            }
         }
     });
+    
+    // Calculate performance metrics
+    const winningTrades = tradePerformance.filter(t => t.profit > 0);
+    const losingTrades = tradePerformance.filter(t => t.profit < 0);
+    const winRate = tradePerformance.length > 0 ? (winningTrades.length / tradePerformance.length) * 100 : 0;
+    const avgProfit = tradePerformance.length > 0 ? tradePerformance.reduce((sum, t) => sum + t.profit, 0) / tradePerformance.length : 0;
+    const bestTrade = tradePerformance.length > 0 ? tradePerformance.reduce((best, t) => t.profit > best.profit ? t : best, tradePerformance[0]) : null;
+    const worstTrade = tradePerformance.length > 0 ? tradePerformance.reduce((worst, t) => t.profit < worst.profit ? t : worst, tradePerformance[0]) : null;
     
     const tradingVolume = totalBuyValue + totalSellValue;
 
@@ -82,6 +133,9 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
     // Cash balance is not calculated here, assume it's passed or derived elsewhere.
     // For this context, we focus on portfolio performance.
 
+    // Calculate unrealized P/L (current open positions)
+    const unrealizedPL = totalAssetValue - totalCostBasis;
+    
     return {
       totalAssetValue,
       totalCostBasis,
@@ -96,6 +150,14 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
       totalBuyTrades,
       totalSellTrades,
       tradingVolume,
+      realizedPL,
+      unrealizedPL,
+      winRate,
+      avgProfit,
+      bestTrade,
+      worstTrade,
+      winningTradesCount: winningTrades.length,
+      losingTradesCount: losingTrades.length,
       enrichedHoldings
     };
   }, [holdings, marketData, transactions, championshipId]);
@@ -152,6 +214,69 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
             </div>
             <LineChart size={24} className={isTotalReturnPositive ? 'text-green-500' : 'text-red-500'} />
           </div>
+        </div>
+      </div>
+
+      {/* Trading Performance Metrics */}
+      <div className={`rounded-2xl border overflow-hidden ${theme === 'dark' ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}>
+        <div className="border-b border-gray-100 p-6 dark:border-white/5">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Trading Performance Metrics</h3>
+        </div>
+        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+                <p className="text-sm text-gray-500">Realized P/L</p>
+                <p className={`text-xl font-bold ${stats.realizedPL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {stats.realizedPL >= 0 ? '+' : ''}${stats.realizedPL.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">From closed positions</p>
+            </div>
+            <div>
+                <p className="text-sm text-gray-500">Unrealized P/L</p>
+                <p className={`text-xl font-bold ${stats.unrealizedPL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {stats.unrealizedPL >= 0 ? '+' : ''}${stats.unrealizedPL.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">From open positions</p>
+            </div>
+            <div>
+                <p className="text-sm text-gray-500">Win Rate</p>
+                <p className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                    {stats.winRate.toFixed(1)}%
+                </p>
+                <p className="text-xs text-gray-500 mt-1">{stats.winningTradesCount}W / {stats.losingTradesCount}L</p>
+            </div>
+            <div>
+                <p className="text-sm text-gray-500">Avg Profit per Trade</p>
+                <p className={`text-xl font-bold ${stats.avgProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {stats.avgProfit >= 0 ? '+' : ''}${stats.avgProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Average return</p>
+            </div>
+            <div>
+                <p className="text-sm text-gray-500">Best Trade</p>
+                {stats.bestTrade ? (
+                    <>
+                        <p className="text-xl font-bold text-green-500">
+                            +${stats.bestTrade.profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">{stats.bestTrade.symbol} ({stats.bestTrade.quantity} shares)</p>
+                    </>
+                ) : (
+                    <p className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>-</p>
+                )}
+            </div>
+            <div>
+                <p className="text-sm text-gray-500">Worst Trade</p>
+                {stats.worstTrade ? (
+                    <>
+                        <p className="text-xl font-bold text-red-500">
+                            ${stats.worstTrade.profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">{stats.worstTrade.symbol} ({stats.worstTrade.quantity} shares)</p>
+                    </>
+                ) : (
+                    <p className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>-</p>
+                )}
+            </div>
         </div>
       </div>
 
