@@ -21,7 +21,7 @@ export const ChatBot: React.FC<ChatBotProps> = ({ theme, marketData, holdings, u
     {
       id: 'welcome',
       role: 'model',
-      text: `Ciao ${user.name.split(' ')[0]}! Sono AlphaArenaBot, il tuo assistente di trading personale alimentato da ${user.active_ai_provider ? user.active_ai_provider.toUpperCase() : 'GEMINI'}. Come posso aiutarti?`,
+      text: `Ciao ${user.name.split(' ')[0]}! Sono AlphaBot, il tuo assistente di trading personale alimentato da ${user.active_ai_provider ? user.active_ai_provider.toUpperCase() : 'GEMINI'}. Come posso aiutarti?`,
       timestamp: new Date()
     }
   ]);
@@ -68,7 +68,7 @@ export const ChatBot: React.FC<ChatBotProps> = ({ theme, marketData, holdings, u
      setMessages([{
         id: 'welcome',
         role: 'model',
-        text: `Ciao ${user.name.split(' ')[0]}! Sono AlphaArenaBot, il tuo assistente di trading personale alimentato da ${user.active_ai_provider ? user.active_ai_provider.toUpperCase() : 'GEMINI'}. Come posso aiutarti?`,
+        text: `Ciao ${user.name.split(' ')[0]}! Sono AlphaBot, il tuo assistente di trading personale alimentato da ${user.active_ai_provider ? user.active_ai_provider.toUpperCase() : 'GEMINI'}. Come posso aiutarti?`,
         timestamp: new Date()
      }]);
      setSelectedImage(null); // Clear image on user change
@@ -152,7 +152,7 @@ export const ChatBot: React.FC<ChatBotProps> = ({ theme, marketData, holdings, u
       // championshipId prop is now guaranteed to be a string.
 
       const systemContext = `
-        Sei un assistente di trading AI avanzato chiamato "AlphaArenaBot" incorporato nell'applicazione AlphaArena.
+        Sei un assistente di trading AI avanzato chiamato "AlphaBot" incorporato nell'applicazione AlphaArena.
         
         CONTESTO UTENTE:
         - Nome: ${user.name}
@@ -286,7 +286,7 @@ export const ChatBot: React.FC<ChatBotProps> = ({ theme, marketData, holdings, u
                     <Sparkles size={16} />
                 </div>
                 <div>
-                    <h3 className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>AlphaArenaBot</h3>
+                    <h3 className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>AlphaBot</h3>
                     <div className="flex items-center gap-1">
                         <span className="relative flex h-2 w-2">
                           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
