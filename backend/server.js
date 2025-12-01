@@ -5,6 +5,47 @@ const Stripe = require('stripe');
 require('dotenv').config();
 const { savePayment, joinChampionship, getChampionshipById } = require('./database');
 
+// Stock names mapping
+const STOCK_NAMES = {
+    'AAPL': 'Apple Inc.', 'NVDA': 'NVIDIA Corp.', 'MSFT': 'Microsoft Corp.',
+    'TSLA': 'Tesla Inc.', 'AMZN': 'Amazon.com Inc.', 'GOOGL': 'Alphabet Inc.',
+    'META': 'Meta Platforms', 'JPM': 'JPMorgan Chase & Co.', 'BAC': 'Bank of America Corp.',
+    'JNJ': 'Johnson & Johnson', 'LLY': 'Eli Lilly and Company', 'V': 'Visa Inc.',
+    'MA': 'Mastercard Incorporated', 'WMT': 'Walmart Inc.', 'PG': 'Procter & Gamble Co.',
+    'XOM': 'Exxon Mobil Corporation', 'BRK.B': 'Berkshire Hathaway Inc. Class B',
+    'UNH': 'UnitedHealth Group Incorporated', 'HD': 'The Home Depot, Inc.',
+    'CVX': 'Chevron Corporation', 'PFE': 'Pfizer Inc.', 'ABBV': 'AbbVie Inc.',
+    'COST': 'Costco Wholesale Corporation', 'ORCL': 'Oracle Corporation',
+    'CRM': 'Salesforce, Inc.', 'MCD': 'McDonald\'s Corporation', 'KO': 'The Coca-Cola Company',
+    'PEP': 'PepsiCo, Inc.', 'CSCO': 'Cisco Systems, Inc.', 'ACN': 'Accenture plc',
+    'NFLX': 'Netflix, Inc.', 'ADBE': 'Adobe Inc.', 'NKE': 'NIKE, Inc.',
+    'AMD': 'Advanced Micro Devices, Inc.', 'QCOM': 'QUALCOMM Incorporated',
+    'T': 'AT&T Inc.', 'TMUS': 'T-Mobile US, Inc.', 'INTC': 'Intel Corporation',
+    'GE': 'General Electric Company', 'IBM': 'International Business Machines Corporation',
+    'AMGN': 'Amgen Inc.', 'BKNG': 'Booking Holdings Inc.', 'C': 'Citigroup Inc.',
+    'GS': 'The Goldman Sachs Group, Inc.', 'BA': 'The Boeing Company',
+    'CAT': 'Caterpillar Inc.', 'HON': 'Honeywell International Inc.',
+    'LMT': 'Lockheed Martin Corporation', 'RTX': 'RTX Corporation',
+    'GD': 'General Dynamics Corporation', 'NOC': 'Northrop Grumman Corporation',
+    'DHR': 'Danaher Corporation', 'SYK': 'Stryker Corporation',
+    'ISRG': 'Intuitive Surgical, Inc.', 'ABT': 'Abbott Laboratories',
+    'TMO': 'Thermo Fisher Scientific Inc.', 'COP': 'ConocoPhillips',
+    'EOG': 'EOG Resources, Inc.', 'F': 'Ford Motor Company', 'GM': 'General Motors Company',
+    'KMI': 'Kinder Morgan, Inc.', 'EXC': 'Exelon Corporation', 'SO': 'The Southern Company',
+    'DUK': 'Duke Energy Corporation', 'AEP': 'American Electric Power Company, Inc.',
+    'NEE': 'NextEra Energy, Inc.', 'WFC': 'Wells Fargo & Company',
+    'AXP': 'American Express Company', 'MRK': 'Merck & Co., Inc.',
+    'PYPL': 'PayPal Holdings, Inc.', 'SBUX': 'Starbucks Corporation',
+    'LOW': 'Lowe\'s Companies, Inc.', 'TJX': 'The TJX Companies, Inc.',
+    'BTC-USD': 'Bitcoin', 'ETH-USD': 'Ethereum', 'BNB-USD': 'Binance Coin',
+    'SOL-USD': 'Solana', 'ADA-USD': 'Cardano', 'XRP-USD': 'Ripple',
+    'DOGE-USD': 'Dogecoin', 'DOT-USD': 'Polkadot', 'MATIC-USD': 'Polygon',
+    'AVAX-USD': 'Avalanche', 'BTCUSD': 'Bitcoin', 'ETHUSD': 'Ethereum',
+    'BNBUSD': 'Binance Coin', 'SOLUSD': 'Solana', 'ADAUSD': 'Cardano',
+    'XRPUSD': 'Ripple', 'DOGEUSD': 'Dogecoin', 'DOTUSD': 'Polkadot',
+    'MATICUSD': 'Polygon', 'AVAXUSD': 'Avalanche'
+};
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -94,16 +135,24 @@ app.post('/api/market-data', async (req, res) => {
     const cryptoSymbols = ['BTC', 'ETH', 'BNB', 'SOL', 'ADA', 'XRP', 'DOGE', 'DOT', 'MATIC', 'AVAX'];
     const stockSymbols = [];
     const cryptoRequestSymbols = [];
+    const symbolMapping = {}; // Keep track of original symbols
     
     symbols.forEach(symbol => {
       const cleanSymbol = symbol.replace('-', '').toUpperCase();
       const isCrypto = cryptoSymbols.includes(cleanSymbol.replace('USD', ''));
+      
+      symbolMapping[cleanSymbol] = symbol; // Store original format
       
       if (isCrypto) {
         cryptoRequestSymbols.push(cleanSymbol);
       } else {
         stockSymbols.push(cleanSymbol);
       }
+    });
+
+    console.log('[Alpaca Proxy] Categorized symbols:', {
+      stocks: stockSymbols,
+      crypto: cryptoRequestSymbols
     });
 
     const allStocks = [];
@@ -123,6 +172,8 @@ app.post('/api/market-data', async (req, res) => {
       if (stocksResponse.ok) {
         const stocksData = await stocksResponse.json();
         
+        console.log('[Alpaca Proxy] Stocks response keys:', Object.keys(stocksData));
+        
         for (const symbol of stockSymbols) {
           const item = stocksData[symbol];
           if (item) {
@@ -132,14 +183,25 @@ app.post('/api/market-data', async (req, res) => {
             const vol = item.dailyBar?.v || 0;
             const volStr = vol > 1000000 ? `${(vol/1000000).toFixed(1)}M` : vol > 1000 ? `${(vol/1000).toFixed(1)}K` : vol.toString();
 
+            const originalSymbol = symbolMapping[symbol] || symbol;
+            const stockName = STOCK_NAMES[symbol] || STOCK_NAMES[originalSymbol] || `${symbol} Corp`;
+
             allStocks.push({
-              symbol: symbol,
+              symbol: originalSymbol,
+              name: stockName,
               price: price,
               changePercent: parseFloat(changePercent.toFixed(2)),
+              marketCap: 'N/A',
               volume: volStr
             });
+            
+            console.log(`[Alpaca Proxy] Added stock: ${originalSymbol} (${stockName})`);
+          } else {
+            console.log(`[Alpaca Proxy] No data for stock: ${symbol}`);
           }
         }
+      } else {
+        console.error('[Alpaca Proxy] Stocks API error:', stocksResponse.status, stocksResponse.statusText);
       }
     }
 
@@ -167,27 +229,42 @@ app.post('/api/market-data', async (req, res) => {
         const cryptoData = await cryptoResponse.json();
         const bars = cryptoData.bars || {};
         
+        console.log('[Alpaca Proxy] Crypto response symbols:', Object.keys(bars));
+        
         cryptoUrlSymbols.forEach((symbolWithSlash, index) => {
           const bar = bars[symbolWithSlash];
           if (bar) {
             const originalSymbol = cryptoRequestSymbols[index];
+            const mappedSymbol = symbolMapping[originalSymbol] || originalSymbol;
             const price = bar.c || 0;
             const prevClose = bar.o || price;
             const changePercent = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
             const vol = bar.v || 0;
             const volStr = vol > 1000000 ? `${(vol/1000000).toFixed(1)}M` : vol > 1000 ? `${(vol/1000).toFixed(1)}K` : vol.toString();
 
+            const cryptoName = STOCK_NAMES[originalSymbol] || STOCK_NAMES[mappedSymbol] || `${originalSymbol.replace('USD', '')} Crypto`;
+
             allStocks.push({
-              symbol: originalSymbol,
+              symbol: mappedSymbol,
+              name: cryptoName,
               price: parseFloat(price.toFixed(2)),
               changePercent: parseFloat(changePercent.toFixed(2)),
+              marketCap: 'N/A',
               volume: volStr
             });
+            
+            console.log(`[Alpaca Proxy] Added crypto: ${mappedSymbol} (${cryptoName})`);
+          } else {
+            console.log(`[Alpaca Proxy] No data for crypto: ${symbolWithSlash}`);
           }
         });
+      } else {
+        console.error('[Alpaca Proxy] Crypto API error:', cryptoResponse.status, cryptoResponse.statusText);
       }
     }
 
+    console.log(`[Alpaca Proxy] Returning ${allStocks.length} stocks total`);
+    
     res.json({
       success: true,
       stocks: allStocks,
