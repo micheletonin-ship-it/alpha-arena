@@ -511,20 +511,27 @@ const AppContent: React.FC = () => {
 
       const portfolioSymbols = currentHoldings.map(h => h.symbol);
       
-      // Include championship whitelist tickers in fetch if applicable
+      // Check if championship has ticker restrictions
       let championshipTickers: string[] = [];
+      let hasTickerRestrictions = false;
+      
       if (currentChampionshipIdRef.current) {
         try {
           const championship = await db.getChampionshipById(currentChampionshipIdRef.current);
-          if (championship?.ticker_restriction_enabled && championship.allowed_tickers) {
+          if (championship?.ticker_restriction_enabled && championship.allowed_tickers && championship.allowed_tickers.length > 0) {
             championshipTickers = championship.allowed_tickers;
+            hasTickerRestrictions = true;
           }
         } catch (error) {
           console.error("Error fetching championship tickers:", error);
         }
       }
       
-      const allDynamicSymbols = Array.from(new Set([...portfolioSymbols, ...currentWatched, ...championshipTickers])); // Deduplicate and include championship tickers
+      // If championship has ticker restrictions, ONLY fetch those tickers
+      // Otherwise, fetch portfolio + watched + championship tickers
+      const allDynamicSymbols = hasTickerRestrictions 
+        ? championshipTickers 
+        : Array.from(new Set([...portfolioSymbols, ...currentWatched, ...championshipTickers]));
       
       // Use backend proxy for Alpaca data
       const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -557,16 +564,8 @@ const AppContent: React.FC = () => {
       setDataProvider(data.provider || 'Alpaca');
 
       if (data.stocks && data.stocks.length > 0) {
-        // Apply championship ticker filtering if active
-        let filteredStocks = data.stocks;
-        if (currentChampionshipIdRef.current) {
-          filteredStocks = await marketService.filterAllowedTickers(
-            data.stocks,
-            currentChampionshipIdRef.current
-          );
-        }
-
-        const sortedStocks = filteredStocks.sort((a, b) => {
+        // No need to filter again - we already requested only allowed tickers
+        const sortedStocks = data.stocks.sort((a, b) => {
              const aWatched = currentWatched.includes(a.symbol) || portfolioSymbols.includes(a.symbol);
              const bWatched = currentWatched.includes(b.symbol) || portfolioSymbols.includes(b.symbol);
              if (aWatched && !bWatched) return -1;
