@@ -339,7 +339,7 @@ const AppContent: React.FC = () => {
                 setCurrentChampionshipId(champ.id);
                 setCurrentChampionshipName(champ.name);
                 setCurrentChampionshipStartingCash(champ.starting_cash);
-                setActiveTab('championships'); // Always show championships first on login
+                setActiveTab('portfolio'); // Open portfolio directly when user has a championship
                 // Load strategies after user and championship context are set
                 const loadedStrategies = await loadStrategyData(user.activeStrategyId);
                 await refreshUserData(user.id, champ.id); // UPDATED: Pass champ.id directly
@@ -957,7 +957,8 @@ const AppContent: React.FC = () => {
   // UPDATED: Render specific tabs only if a championship is active, or if on 'championships' tab
   const renderContent = () => {
       // ADMIN ACCESS CONTROL: Block admin from accessing trading tabs
-      const tradingTabs = ['portfolio', 'market', 'scanner', 'activity', 'statistics', 'strategies', 'agent-monitor'];
+      // Note: 'strategies' is NOT included here as admins need access to manage strategies
+      const tradingTabs = ['portfolio', 'market', 'scanner', 'activity', 'statistics', 'agent-monitor'];
       if (currentUser?.is_admin && tradingTabs.includes(activeTab)) {
           // Redirect admin to admin-panel if they try to access trading tabs
           setActiveTab('admin-panel');

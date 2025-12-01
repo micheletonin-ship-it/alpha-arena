@@ -327,8 +327,8 @@ export const getAIStrategyRecommendation = async (symbol: string): Promise<{ rec
             - reason: string (max 15 words explaining why)
         `;
 
-        // USE CENTRAL AI SERVICE
-        const aiResponse: AIResponse = await generateAIContent(prompt, { jsonMode: true, tools: [{googleSearch: {}}] });
+        // USE CENTRAL AI SERVICE (without googleSearch to ensure JSON mode works)
+        const aiResponse: AIResponse = await generateAIContent(prompt, { jsonMode: true });
         
         // generateAIContent now throws an Error if it can't produce content
         let jsonString = aiResponse.text.replace(/```json/g, '').replace(/```/g, '').trim();

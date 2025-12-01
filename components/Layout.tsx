@@ -35,6 +35,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, toggleTheme, ac
   const adminNavItems: NavItem[] = [
     { label: 'Championship', icon: <Trophy size={24} />, id: 'championships' },
     { label: 'Admin Panel', icon: <Shield size={24} />, id: 'admin-panel' },
+    { label: 'Strategies', icon: <BrainCircuit size={24} />, id: 'strategies' },
     { label: 'Settings', icon: <Settings size={24} />, id: 'settings' },
   ];
 

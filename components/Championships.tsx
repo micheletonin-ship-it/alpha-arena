@@ -1618,21 +1618,27 @@ export const Championships: React.FC<ChampionshipsProps> = ({ theme, currentUser
 
   // NEW ORGANIZATION: By user participation instead of status
   // 1. Championships the user is participating in (pending or active)
+  // ADMIN: sees ALL pending/active championships
+  // USER: sees only championships they're participating in
   const myChampionships = championships.filter(c => 
     (c.status === 'pending' || c.status === 'active') && 
-    c.participant_emails?.includes(currentUser.email)
+    (currentUser.is_admin || c.participant_emails?.includes(currentUser.email))
   );
 
   // 2. Championships available to join (pending or active, not participating)
-  const availableChampionships = championships.filter(c => 
+  // ADMIN: hidden (empty array, they see everything in "My Championships")
+  // USER: sees championships they're NOT participating in
+  const availableChampionships = currentUser.is_admin ? [] : championships.filter(c => 
     (c.status === 'pending' || c.status === 'active') && 
     !c.participant_emails?.includes(currentUser.email)
   );
 
-  // 3. Finished championships (only those the user participated in)
+  // 3. Finished championships
+  // ADMIN: sees ALL finished championships
+  // USER: sees only finished championships they participated in
   const finishedChampionships = championships.filter(c => 
     c.status === 'finished' && 
-    c.participant_emails?.includes(currentUser.email)
+    (currentUser.is_admin || c.participant_emails?.includes(currentUser.email))
   );
 
   return (

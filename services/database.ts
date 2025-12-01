@@ -1362,6 +1362,75 @@ export const distributePrizes = async (championshipId: string, leaderboard: Lead
     }
 };
 
+// --- GLOBAL STATISTICS ---
+
+export const getGlobalStats = async (): Promise<{ volume: number; traders: number; championships: number }> => {
+    const supabase = getSupabase();
+    
+    if (supabase) {
+        try {
+            // Get total volume from transactions
+            const { data: txData, error: txError } = await supabase
+                .from('transactions')
+                .select('amount, type');
+            
+            const totalVolume = (txData || [])
+                .filter((tx: any) => tx.type === 'buy' || tx.type === 'sell')
+                .reduce((sum: number, tx: any) => sum + parseFloat(tx.amount), 0);
+            
+            // Get total users count
+            const { count: usersCount, error: usersError } = await supabase
+                .from('user_profiles')
+                .select('*', { count: 'exact', head: true });
+            
+            // Get active championships count
+            const now = new Date().toISOString();
+            const { count: champsCount, error: champsError } = await supabase
+                .from('championships')
+                .select('*', { count: 'exact', head: true })
+                .or(`status.eq.active,status.eq.pending`)
+                .or(`end_date.is.null,end_date.gte.${now}`);
+            
+            if (txError) console.warn("Error fetching transaction volume:", getSupabaseErrorMessage(txError));
+            if (usersError) console.warn("Error fetching users count:", getSupabaseErrorMessage(usersError));
+            if (champsError) console.warn("Error fetching championships count:", getSupabaseErrorMessage(champsError));
+            
+            return {
+                volume: totalVolume || 0,
+                traders: usersCount || 0,
+                championships: champsCount || 0
+            };
+        } catch (e: any) {
+            console.error("Cloud Get Global Stats Error:", getSupabaseErrorMessage(e));
+            // Fallback to local if cloud fails
+        }
+    }
+    
+    // Local Fallback
+    await sleep(DELAY_MS);
+    
+    const allTransactions = JSON.parse(localStorage.getItem(`${DB_PREFIX}transactions`) || '[]');
+    const totalVolume = allTransactions
+        .filter((tx: any) => tx.type === 'buy' || tx.type === 'sell')
+        .reduce((sum: number, tx: any) => sum + (tx.amount || 0), 0);
+    
+    const allUsers = JSON.parse(localStorage.getItem(`${DB_PREFIX}users`) || '[]');
+    const totalTraders = allUsers.length;
+    
+    const allChampionships: Championship[] = JSON.parse(localStorage.getItem(`${DB_PREFIX}championships`) || '[]');
+    const now = new Date();
+    const activeChampionships = allChampionships.filter((c: Championship) => {
+        const hasEnded = c.end_date && new Date(c.end_date) < now;
+        return (c.status === 'active' || c.status === 'pending') && !hasEnded;
+    }).length;
+    
+    return {
+        volume: totalVolume,
+        traders: totalTraders,
+        championships: activeChampionships
+    };
+};
+
 // --- INITIALIZATION ---
 export const initDatabase = async () => {
     // Force init empty if not present

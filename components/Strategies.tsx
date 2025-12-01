@@ -102,13 +102,23 @@ export const Strategies: React.FC<StrategiesProps> = ({ theme, user, onStrategyC
     <div className="mx-auto max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between mb-6">
         <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Trading Strategies</h2>
-        <button
-          onClick={handleCreate}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 font-bold transition-all ${theme === 'dark' ? 'bg-neonGreen text-black hover:bg-neonGreen/90' : 'bg-black text-white hover:bg-gray-800'}`}
-        >
-          <Plus size={18} /> Add New
-        </button>
+        {user.is_admin && (
+          <button
+            onClick={handleCreate}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 font-bold transition-all ${theme === 'dark' ? 'bg-neonGreen text-black hover:bg-neonGreen/90' : 'bg-black text-white hover:bg-gray-800'}`}
+          >
+            <Plus size={18} /> Add New
+          </button>
+        )}
       </div>
+
+      {!user.is_admin && (
+        <div className={`mb-6 p-4 rounded-xl border ${theme === 'dark' ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200'}`}>
+          <p className={`text-sm ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
+            ℹ️ Le strategie di trading sono gestite dagli amministratori. Puoi selezionare e applicare qualsiasi strategia disponibile al tuo portfolio.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-4">
         {strategies.map((strategy) => (
@@ -140,21 +150,25 @@ export const Strategies: React.FC<StrategiesProps> = ({ theme, user, onStrategyC
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleEdit(strategy)}
-                className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-gray-400 hover:bg-white/10 hover:text-white' : 'text-gray-500 hover:bg-gray-100'}`}
-                title="Edit Strategy"
-              >
-                <Edit2 size={18} />
-              </button>
-              {!strategy.isSystem && (
-                <button
-                  onClick={() => handleDelete(strategy.id)}
-                  className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-red-400 hover:bg-red-500/10' : 'text-red-600 hover:bg-red-100'}`}
-                  title="Delete Strategy"
-                >
-                  <Trash2 size={18} />
-                </button>
+              {user.is_admin && (
+                <>
+                  <button
+                    onClick={() => handleEdit(strategy)}
+                    className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-gray-400 hover:bg-white/10 hover:text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+                    title="Edit Strategy"
+                  >
+                    <Edit2 size={18} />
+                  </button>
+                  {!strategy.isSystem && (
+                    <button
+                      onClick={() => handleDelete(strategy.id)}
+                      className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'text-red-400 hover:bg-red-500/10' : 'text-red-600 hover:bg-red-100'}`}
+                      title="Delete Strategy"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                </>
               )}
               <button
                 onClick={() => handleSetActive(strategy.id)}
