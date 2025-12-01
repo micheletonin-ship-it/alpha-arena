@@ -54,14 +54,16 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
     });
 
     transactions.forEach(tx => {
+        const amount = Number(tx.amount) || 0; // Ensure it's a number
+        
         if (tx.type === 'deposit') {
-            totalDeposits += tx.amount;
+            totalDeposits += amount;
         } else if (tx.type === 'withdrawal') {
-            totalWithdrawals += tx.amount;
+            totalWithdrawals += amount;
         } else if (tx.type === 'buy') {
-            totalBuyValue += tx.amount;
+            totalBuyValue += amount;
         } else if (tx.type === 'sell') {
-            totalSellValue += tx.amount;
+            totalSellValue += amount;
         }
     });
 
