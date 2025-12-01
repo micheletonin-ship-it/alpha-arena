@@ -276,15 +276,19 @@ export const fetchMarketData = async (additionalSymbols: string[] = [], alpacaKe
   
   console.log('fetchMarketData: Requested symbols:', uniqueSymbols);
 
+  // Read from environment variables if not provided as parameters
+  const effectiveKey = alpacaKey || import.meta.env.VITE_ALPACA_KEY;
+  const effectiveSecret = alpacaSecret || import.meta.env.VITE_ALPACA_SECRET;
+
   // Check if Alpaca credentials are configured
-  if (!alpacaKey || !alpacaSecret) {
-      const errorMsg = 'Alpaca credentials not configured. Please add VITE_ALPACA_KEY and VITE_ALPACA_SECRET to your .env.local file.';
+  if (!effectiveKey || !effectiveSecret) {
+      const errorMsg = 'Alpaca credentials not configured. Please add VITE_ALPACA_KEY and VITE_ALPACA_SECRET to your .env.local file or environment variables.';
       console.error('fetchMarketData:', errorMsg);
       throw new Error(errorMsg);
   }
 
   try {
-      const alpacaData = await fetchAlpacaData(alpacaKey, alpacaSecret, uniqueSymbols);
+      const alpacaData = await fetchAlpacaData(effectiveKey, effectiveSecret, uniqueSymbols);
       
       if (!alpacaData || alpacaData.length === 0) {
           throw new Error('Alpaca returned no data. Please check your API keys and network connection.');
