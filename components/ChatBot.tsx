@@ -21,7 +21,7 @@ export const ChatBot: React.FC<ChatBotProps> = ({ theme, marketData, holdings, u
     {
       id: 'welcome',
       role: 'model',
-      text: `Ciao ${user.name.split(' ')[0]}! Sono TradeBot, il tuo assistente di trading personale alimentato da ${user.active_ai_provider ? user.active_ai_provider.toUpperCase() : 'GEMINI'}. Come posso aiutarti?`,
+      text: `Ciao ${user.name.split(' ')[0]}! Sono AlphaArenaBot, il tuo assistente di trading personale alimentato da ${user.active_ai_provider ? user.active_ai_provider.toUpperCase() : 'GEMINI'}. Come posso aiutarti?`,
       timestamp: new Date()
     }
   ]);
@@ -30,6 +30,11 @@ export const ChatBot: React.FC<ChatBotProps> = ({ theme, marketData, holdings, u
   const [selectedImage, setSelectedImage] = useState<{ file: File, preview: string, data: string, mimeType: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // NEW: Daily message limit (10 messages per day)
+  const DAILY_MESSAGE_LIMIT = 10;
+  const [dailyMessageCount, setDailyMessageCount] = useState(0);
+  const [lastMessageDate, setLastMessageDate] = useState<string | null>(null);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom
@@ -37,12 +42,33 @@ export const ChatBot: React.FC<ChatBotProps> = ({ theme, marketData, holdings, u
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isOpen]);
 
+  // NEW: Load and manage daily message count from localStorage
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const storageKey = `chatbot_daily_count_${user.id}`;
+    const storageDateKey = `chatbot_last_date_${user.id}`;
+    
+    const savedCount = localStorage.getItem(storageKey);
+    const savedDate = localStorage.getItem(storageDateKey);
+    
+    // Reset count if it's a new day
+    if (savedDate !== today) {
+      setDailyMessageCount(0);
+      setLastMessageDate(today);
+      localStorage.setItem(storageKey, '0');
+      localStorage.setItem(storageDateKey, today);
+    } else {
+      setDailyMessageCount(parseInt(savedCount || '0', 10));
+      setLastMessageDate(savedDate);
+    }
+  }, [user.id]);
+
   // Reset chat if user changes or championship changes
   useEffect(() => {
      setMessages([{
         id: 'welcome',
         role: 'model',
-        text: `Ciao ${user.name.split(' ')[0]}! Sono TradeBot, il tuo assistente di trading personale alimentato da ${user.active_ai_provider ? user.active_ai_provider.toUpperCase() : 'GEMINI'}. Come posso aiutarti?`,
+        text: `Ciao ${user.name.split(' ')[0]}! Sono AlphaArenaBot, il tuo assistente di trading personale alimentato da ${user.active_ai_provider ? user.active_ai_provider.toUpperCase() : 'GEMINI'}. Come posso aiutarti?`,
         timestamp: new Date()
      }]);
      setSelectedImage(null); // Clear image on user change
@@ -90,6 +116,18 @@ export const ChatBot: React.FC<ChatBotProps> = ({ theme, marketData, holdings, u
   const handleSendMessage = async () => {
     if (!input.trim() && !selectedImage) return; // Don't send empty message or no image
 
+    // NEW: Check daily message limit
+    if (dailyMessageCount >= DAILY_MESSAGE_LIMIT) {
+      const errorMsg: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'model',
+        text: `⚠️ Hai raggiunto il limite giornaliero di ${DAILY_MESSAGE_LIMIT} messaggi. Riprova domani!`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMsg]);
+      return;
+    }
+
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -103,13 +141,18 @@ export const ChatBot: React.FC<ChatBotProps> = ({ theme, marketData, holdings, u
     setIsTyping(true);
     handleClearImage(); // Clear selected image after sending
 
+    // NEW: Increment daily message count
+    const newCount = dailyMessageCount + 1;
+    setDailyMessageCount(newCount);
+    localStorage.setItem(`chatbot_daily_count_${user.id}`, newCount.toString());
+
     try {
       // Filter holdings for the current championship context
       // holdings prop is already filtered by App.tsx, no need to filter again.
       // championshipId prop is now guaranteed to be a string.
 
       const systemContext = `
-        Sei un assistente di trading AI avanzato chiamato "TradeBot" incorporato nell'applicazione AlphaArena.
+        Sei un assistente di trading AI avanzato chiamato "AlphaArenaBot" incorporato nell'applicazione AlphaArena.
         
         CONTESTO UTENTE:
         - Nome: ${user.name}
@@ -243,7 +286,7 @@ export const ChatBot: React.FC<ChatBotProps> = ({ theme, marketData, holdings, u
                     <Sparkles size={16} />
                 </div>
                 <div>
-                    <h3 className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>TradeBot</h3>
+                    <h3 className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>AlphaArenaBot</h3>
                     <div className="flex items-center gap-1">
                         <span className="relative flex h-2 w-2">
                           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
@@ -349,7 +392,18 @@ export const ChatBot: React.FC<ChatBotProps> = ({ theme, marketData, holdings, u
                     <Send size={18} />
                 </button>
              </div>
-             <p className="mt-2 text-center text-[10px] text-gray-500">L'AI può commettere errori. Controlla le informazioni importanti.</p>
+             <div className="mt-2 flex items-center justify-between">
+                <p className="text-[10px] text-gray-500">L'AI può commettere errori. Controlla le informazioni importanti.</p>
+                <p className={`text-[10px] font-medium ${
+                  dailyMessageCount >= DAILY_MESSAGE_LIMIT 
+                    ? 'text-red-500' 
+                    : dailyMessageCount >= DAILY_MESSAGE_LIMIT * 0.8 
+                      ? 'text-orange-500' 
+                      : 'text-gray-500'
+                }`}>
+                  {DAILY_MESSAGE_LIMIT - dailyMessageCount}/{DAILY_MESSAGE_LIMIT} messaggi rimasti
+                </p>
+             </div>
           </div>
 
         </div>
