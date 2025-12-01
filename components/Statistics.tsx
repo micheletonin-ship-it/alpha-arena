@@ -22,6 +22,9 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
     let totalWithdrawals = 0;
     let totalBuyValue = 0;
     let totalSellValue = 0;
+    let totalTrades = 0;
+    let totalBuyTrades = 0;
+    let totalSellTrades = 0;
 
     // Filter holdings and transactions based on championshipId passed from App.tsx
     // These props are already filtered by App.tsx, no need to filter again.
@@ -53,17 +56,6 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
       };
     });
 
-    // DEBUG: Log transactions to identify duplicates
-    console.log('=== STATISTICS DEBUG ===');
-    console.log('Total transactions received:', transactions.length);
-    console.log('Transactions:', transactions.map(t => ({
-        id: t.id,
-        type: t.type,
-        amount: t.amount,
-        symbol: t.symbol,
-        date: t.date.substring(0, 10)
-    })));
-    
     transactions.forEach(tx => {
         const amount = Number(tx.amount) || 0; // Ensure it's a number
         
@@ -73,18 +65,16 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
             totalWithdrawals += amount;
         } else if (tx.type === 'buy') {
             totalBuyValue += amount;
-            console.log(`BUY: ${tx.symbol} - $${amount} (running total: $${totalBuyValue})`);
+            totalBuyTrades++;
+            totalTrades++;
         } else if (tx.type === 'sell') {
             totalSellValue += amount;
-            console.log(`SELL: ${tx.symbol} - $${amount} (running total: $${totalSellValue})`);
+            totalSellTrades++;
+            totalTrades++;
         }
     });
     
-    console.log('Final totals:');
-    console.log('- Deposits:', totalDeposits);
-    console.log('- Withdrawals:', totalWithdrawals);
-    console.log('- Buy Value:', totalBuyValue);
-    console.log('- Sell Value:', totalSellValue);
+    const tradingVolume = totalBuyValue + totalSellValue;
 
     const totalPortfolioReturn = totalAssetValue - totalCostBasis;
     const totalPortfolioReturnPercent = totalCostBasis > 0 ? (totalPortfolioReturn / totalCostBasis) * 100 : 0;
@@ -102,6 +92,10 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
       totalWithdrawals,
       totalBuyValue,
       totalSellValue,
+      totalTrades,
+      totalBuyTrades,
+      totalSellTrades,
+      tradingVolume,
       enrichedHoldings
     };
   }, [holdings, marketData, transactions, championshipId]);
@@ -161,10 +155,47 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
         </div>
       </div>
 
+      {/* Trade Execution Statistics */}
+      <div className={`rounded-2xl border overflow-hidden ${theme === 'dark' ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}>
+        <div className="border-b border-gray-100 p-6 dark:border-white/5">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Trade Execution Statistics</h3>
+        </div>
+        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+                <p className="text-sm text-gray-500">Total Trades Executed</p>
+                <p className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                    {stats.totalTrades}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Buy + Sell operations</p>
+            </div>
+            <div>
+                <p className="text-sm text-gray-500">Buy Trades</p>
+                <p className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                    {stats.totalBuyTrades}
+                </p>
+                <p className="text-xs text-green-500 mt-1">Purchase operations</p>
+            </div>
+            <div>
+                <p className="text-sm text-gray-500">Sell Trades</p>
+                <p className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                    {stats.totalSellTrades}
+                </p>
+                <p className="text-xs text-red-500 mt-1">Sale operations</p>
+            </div>
+            <div>
+                <p className="text-sm text-gray-500">Total Trading Volume</p>
+                <p className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                    ${stats.tradingVolume.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Buy + Sell value</p>
+            </div>
+        </div>
+      </div>
+
       {/* Trading Activity Summary */}
       <div className={`rounded-2xl border overflow-hidden ${theme === 'dark' ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-gray-200'}`}>
         <div className="border-b border-gray-100 p-6 dark:border-white/5">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Trading Activity</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Cash Flow Activity</h3>
         </div>
         <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
