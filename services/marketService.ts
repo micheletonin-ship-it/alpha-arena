@@ -77,6 +77,14 @@ export const filterAllowedTickers = async (
         }
 
         const allowedTickers = championship.allowed_tickers || [];
+        
+        // If ticker restrictions are enabled but no tickers are specified,
+        // allow all stocks (empty whitelist = no restrictions)
+        if (allowedTickers.length === 0) {
+            console.log('filterAllowedTickers: Ticker restrictions enabled but whitelist is empty, allowing all stocks');
+            return stocks;
+        }
+        
         const allowedSet = new Set(allowedTickers.map(t => t.toUpperCase()));
         
         return stocks.filter(stock => allowedSet.has(stock.symbol.toUpperCase()));
