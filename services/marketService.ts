@@ -276,38 +276,37 @@ export const fetchMarketData = async (additionalSymbols: string[] = [], alpacaKe
   
   console.log('fetchMarketData: Requested symbols:', uniqueSymbols);
 
-  if (alpacaKey && alpacaSecret) {
-      try {
-          const alpacaData = await fetchAlpacaData(alpacaKey, alpacaSecret, uniqueSymbols);
-          if (alpacaData && alpacaData.length > 0) {
-              console.log('fetchMarketData: Alpaca returned', alpacaData.length, 'stocks');
-              
-              // Check if there are missing symbols (e.g., crypto that Alpaca doesn't support)
-              const returnedSymbols = new Set(alpacaData.map(s => s.symbol.toUpperCase()));
-              const missingSymbols = uniqueSymbols.filter(s => !returnedSymbols.has(s.toUpperCase()));
-              
-              if (missingSymbols.length > 0) {
-                  console.log('fetchMarketData: Missing symbols from Alpaca, generating mock data for:', missingSymbols);
-                  const mockData = generateMockData(missingSymbols);
-                  const combinedData = [...alpacaData, ...mockData];
-                  return { stocks: combinedData, sources: [], provider: 'Alpaca' };
-              }
-              
-              return { stocks: alpacaData, sources: [], provider: 'Alpaca' };
-          }
-      } catch (e) {
-          console.log('fetchMarketData: Alpaca failed, falling back to Mock');
-      }
+  // Check if Alpaca credentials are configured
+  if (!alpacaKey || !alpacaSecret) {
+      const errorMsg = 'Alpaca credentials not configured. Please add VITE_ALPACA_KEY and VITE_ALPACA_SECRET to your .env.local file.';
+      console.error('fetchMarketData:', errorMsg);
+      throw new Error(errorMsg);
   }
 
-  // 2. Fallback to GenAI (Uses Central AI Service)
   try {
-      const genAiData = await fetchGenAIMarketData(uniqueSymbols);
-      return { ...genAiData, provider: 'Google' };
-  } catch (error) {
-      // Graceful fallback to Mock data without noise
-      console.log('fetchMarketData: GenAI failed, using Mock data for all symbols');
-      return { stocks: generateMockData(uniqueSymbols), sources: [], provider: 'Mock' };
+      const alpacaData = await fetchAlpacaData(alpacaKey, alpacaSecret, uniqueSymbols);
+      
+      if (!alpacaData || alpacaData.length === 0) {
+          throw new Error('Alpaca returned no data. Please check your API keys and network connection.');
+      }
+      
+      console.log('fetchMarketData: Alpaca returned', alpacaData.length, 'stocks');
+      
+      // Check if there are missing symbols (e.g., crypto that Alpaca doesn't support)
+      const returnedSymbols = new Set(alpacaData.map(s => s.symbol.toUpperCase()));
+      const missingSymbols = uniqueSymbols.filter(s => !returnedSymbols.has(s.toUpperCase()));
+      
+      if (missingSymbols.length > 0) {
+          console.warn('fetchMarketData: Alpaca does not support these symbols:', missingSymbols);
+          // Return only the symbols that Alpaca supports
+      }
+      
+      return { stocks: alpacaData, sources: [], provider: 'Alpaca' };
+      
+  } catch (e: any) {
+      const errorMsg = `Alpaca API error: ${e.message || 'Failed to fetch market data'}`;
+      console.error('fetchMarketData:', errorMsg);
+      throw new Error(errorMsg);
   }
 };
 

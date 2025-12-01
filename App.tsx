@@ -527,17 +527,17 @@ const AppContent: React.FC = () => {
       
       const allDynamicSymbols = Array.from(new Set([...portfolioSymbols, ...currentWatched, ...championshipTickers])); // Deduplicate and include championship tickers
       
-      // Get Alpaca keys from shared config (set by admin in Settings)
+      // Get Alpaca keys from shared config
       const alpacaKey = APP_CREDENTIALS.ALPACA_KEY || null;
       const alpacaSecret = APP_CREDENTIALS.ALPACA_SECRET || null;
       
       // DEBUG: Log Alpaca keys status
-      console.log('=== ALPACA KEYS DEBUG ===');
-      console.log('ALPACA_KEY:', alpacaKey ? `${alpacaKey.substring(0, 6)}...` : 'NOT FOUND');
-      console.log('ALPACA_SECRET:', alpacaSecret ? `${alpacaSecret.substring(0, 6)}...` : 'NOT FOUND');
-      console.log('Keys valid:', !!alpacaKey && !!alpacaSecret);
+      console.log('=== ALPACA CONNECTION ===');
+      console.log('ALPACA_KEY:', alpacaKey ? `${alpacaKey.substring(0, 6)}...` : 'NOT CONFIGURED');
+      console.log('ALPACA_SECRET:', alpacaSecret ? `${alpacaSecret.substring(0, 6)}...` : 'NOT CONFIGURED');
+      console.log('Status:', !!alpacaKey && !!alpacaSecret ? 'READY' : 'MISSING CREDENTIALS');
       
-      const data = await fetchMarketData(allDynamicSymbols, alpacaKey, alpacaSecret); // Pass keys to fetchMarketData
+      const data = await fetchMarketData(allDynamicSymbols, alpacaKey, alpacaSecret);
       
       setDataProvider(data.provider);
 
@@ -571,8 +571,21 @@ const AppContent: React.FC = () => {
           // once market data and strategies are fully loaded.
       }
 
-    } catch (error) {
-      console.error("Failed to fetch market data", error);
+    } catch (error: any) {
+      console.error("Failed to fetch market data:", error);
+      
+      // Show user-friendly error message
+      const errorMessage = error.message || "Failed to connect to Alpaca API";
+      
+      // If credentials are missing, show a specific message
+      if (errorMessage.includes('not configured')) {
+        alert("⚠️ Alpaca API non configurata\n\nPer vedere i dati live:\n1. Crea un account su alpaca.markets\n2. Ottieni le tue API keys (Paper Trading)\n3. Aggiungi VITE_ALPACA_KEY e VITE_ALPACA_SECRET al file .env.local\n4. Riavvia l'applicazione");
+      } else {
+        alert(`❌ Errore connessione Alpaca:\n${errorMessage}\n\nVerifica le tue credenziali e la connessione internet.`);
+      }
+      
+      setStocks([]); // Clear stocks on error
+      setDataProvider('Mock'); // Indicate error state
     } finally {
       setLoading(false);
       isFetchingRef.current = false;
