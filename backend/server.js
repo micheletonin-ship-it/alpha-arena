@@ -44,6 +44,146 @@ app.get('/api/health', (req, res) => {
 });
 
 /**
+ * Alpaca Market Data Proxy
+ * This endpoint fetches market data from Alpaca API
+ * and returns it to the frontend
+ */
+app.post('/api/market-data', async (req, res) => {
+  try {
+    const { symbols } = req.body;
+
+    if (!symbols || !Array.isArray(symbols)) {
+      return res.status(400).json({ 
+        error: 'Missing or invalid symbols array' 
+      });
+    }
+
+    // Read Alpaca credentials from environment
+    const ALPACA_KEY = process.env.ALPACA_KEY;
+    const ALPACA_SECRET = process.env.ALPACA_SECRET;
+
+    if (!ALPACA_KEY || !ALPACA_SECRET) {
+      return res.status(500).json({ 
+        error: 'Alpaca credentials not configured on server',
+        message: 'Please configure ALPACA_KEY and ALPACA_SECRET environment variables'
+      });
+    }
+
+    // Separate stocks and crypto
+    const cryptoSymbols = ['BTC', 'ETH', 'BNB', 'SOL', 'ADA', 'XRP', 'DOGE', 'DOT', 'MATIC', 'AVAX'];
+    const stockSymbols = [];
+    const cryptoRequestSymbols = [];
+    
+    symbols.forEach(symbol => {
+      const cleanSymbol = symbol.replace('-', '').toUpperCase();
+      const isCrypto = cryptoSymbols.includes(cleanSymbol.replace('USD', ''));
+      
+      if (isCrypto) {
+        cryptoRequestSymbols.push(cleanSymbol);
+      } else {
+        stockSymbols.push(cleanSymbol);
+      }
+    });
+
+    const allStocks = [];
+
+    // Fetch stocks data
+    if (stockSymbols.length > 0) {
+      const stocksUrl = `https://data.alpaca.markets/v2/stocks/snapshots?symbols=${stockSymbols.join(',')}&feed=iex`;
+      
+      const stocksResponse = await fetch(stocksUrl, {
+        headers: {
+          'APCA-API-KEY-ID': ALPACA_KEY,
+          'APCA-API-SECRET-KEY': ALPACA_SECRET,
+          'accept': 'application/json'
+        }
+      });
+
+      if (stocksResponse.ok) {
+        const stocksData = await stocksResponse.json();
+        
+        for (const symbol of stockSymbols) {
+          const item = stocksData[symbol];
+          if (item) {
+            const price = item.latestTrade?.p || item.dailyBar?.c || 0;
+            const prevClose = item.prevDailyBar?.c || item.dailyBar?.o || price;
+            const changePercent = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
+            const vol = item.dailyBar?.v || 0;
+            const volStr = vol > 1000000 ? `${(vol/1000000).toFixed(1)}M` : vol > 1000 ? `${(vol/1000).toFixed(1)}K` : vol.toString();
+
+            allStocks.push({
+              symbol: symbol,
+              price: price,
+              changePercent: parseFloat(changePercent.toFixed(2)),
+              volume: volStr
+            });
+          }
+        }
+      }
+    }
+
+    // Fetch crypto data
+    if (cryptoRequestSymbols.length > 0) {
+      const cryptoUrlSymbols = cryptoRequestSymbols.map(s => {
+        if (s.length > 3 && s.endsWith('USD')) {
+          const base = s.substring(0, s.length - 3);
+          return `${base}/USD`;
+        }
+        return s;
+      });
+      
+      const cryptoUrl = `https://data.alpaca.markets/v1beta3/crypto/us/latest/bars?symbols=${cryptoUrlSymbols.join(',')}`;
+      
+      const cryptoResponse = await fetch(cryptoUrl, {
+        headers: {
+          'APCA-API-KEY-ID': ALPACA_KEY,
+          'APCA-API-SECRET-KEY': ALPACA_SECRET,
+          'accept': 'application/json'
+        }
+      });
+
+      if (cryptoResponse.ok) {
+        const cryptoData = await cryptoResponse.json();
+        const bars = cryptoData.bars || {};
+        
+        cryptoUrlSymbols.forEach((symbolWithSlash, index) => {
+          const bar = bars[symbolWithSlash];
+          if (bar) {
+            const originalSymbol = cryptoRequestSymbols[index];
+            const price = bar.c || 0;
+            const prevClose = bar.o || price;
+            const changePercent = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
+            const vol = bar.v || 0;
+            const volStr = vol > 1000000 ? `${(vol/1000000).toFixed(1)}M` : vol > 1000 ? `${(vol/1000).toFixed(1)}K` : vol.toString();
+
+            allStocks.push({
+              symbol: originalSymbol,
+              price: parseFloat(price.toFixed(2)),
+              changePercent: parseFloat(changePercent.toFixed(2)),
+              volume: volStr
+            });
+          }
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      stocks: allStocks,
+      provider: 'Alpaca'
+    });
+
+  } catch (error) {
+    console.error('[Alpaca Proxy Error]:', error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch market data',
+      message: error.message 
+    });
+  }
+});
+
+/**
  * Create Payment Intent
  * This endpoint creates a Stripe PaymentIntent for championship enrollment
  */

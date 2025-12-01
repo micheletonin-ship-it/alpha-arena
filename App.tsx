@@ -526,17 +526,27 @@ const AppContent: React.FC = () => {
       
       const allDynamicSymbols = Array.from(new Set([...portfolioSymbols, ...currentWatched, ...championshipTickers])); // Deduplicate and include championship tickers
       
-      // Get Alpaca keys from shared config, fallback to environment variables
-      const alpacaKey = APP_CREDENTIALS.ALPACA_KEY || import.meta.env.VITE_ALPACA_KEY || null;
-      const alpacaSecret = APP_CREDENTIALS.ALPACA_SECRET || import.meta.env.VITE_ALPACA_SECRET || null;
+      // Use backend proxy for Alpaca data
+      const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       
-      // DEBUG: Log Alpaca keys status
-      console.log('=== ALPACA CONNECTION ===');
-      console.log('ALPACA_KEY:', alpacaKey ? `${alpacaKey.substring(0, 6)}...` : 'NOT CONFIGURED');
-      console.log('ALPACA_SECRET:', alpacaSecret ? `${alpacaSecret.substring(0, 6)}...` : 'NOT CONFIGURED');
-      console.log('Status:', !!alpacaKey && !!alpacaSecret ? 'READY' : 'MISSING CREDENTIALS');
+      console.log('=== FETCHING MARKET DATA VIA BACKEND PROXY ===');
+      console.log('Backend URL:', BACKEND_URL);
+      console.log('Symbols:', allDynamicSymbols.length);
       
-      const data = await fetchMarketData(allDynamicSymbols, alpacaKey, alpacaSecret);
+      const response = await fetch(`${BACKEND_URL}/api/market-data`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ symbols: allDynamicSymbols }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch market data from backend');
+      }
+
+      const data = await response.json();
       
       setDataProvider(data.provider);
 
