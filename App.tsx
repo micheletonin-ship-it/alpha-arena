@@ -575,7 +575,7 @@ const AppContent: React.FC = () => {
         });
         setStocks(sortedStocks);
       }
-      if (data.sources.length > 0) {
+      if (data.sources && data.sources.length > 0) {
         setSources(data.sources);
       }
       setLastUpdated(new Date());
