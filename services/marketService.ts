@@ -466,19 +466,63 @@ const getAlpacaBaseUrl = (key: string) => {
     return key.startsWith('PK') ? 'https://paper-api.alpaca.markets' : 'https://api.alpaca.markets';
 };
 
+// Helper to identify crypto symbols
+const isCryptoSymbol = (symbol: string): boolean => {
+    const cryptoSymbols = ['BTC', 'ETH', 'BNB', 'SOL', 'ADA', 'XRP', 'DOGE', 'DOT', 'MATIC', 'AVAX'];
+    const cleanSymbol = symbol.replace('-USD', '').replace('USD', '').toUpperCase();
+    return cryptoSymbols.includes(cleanSymbol);
+};
+
 const fetchAlpacaData = async (key: string, secret: string, symbols: string[]): Promise<Stock[] | null> => {
-    // Create mapping between original symbols and Alpaca-formatted symbols
-    // Alpaca uses format without dashes (e.g., BTCUSD instead of BTC-USD)
+    // Separate stocks and crypto
+    const stockSymbols: string[] = [];
+    const cryptoSymbols: string[] = [];
     const symbolMap: Record<string, string> = {};
-    const alpacaSymbols: string[] = [];
     
     symbols.forEach(symbol => {
         const alpacaSymbol = symbol.replace('-', '').toUpperCase();
-        symbolMap[alpacaSymbol] = symbol; // Map BTCUSD -> BTC-USD
-        alpacaSymbols.push(alpacaSymbol);
+        symbolMap[alpacaSymbol] = symbol;
+        
+        if (isCryptoSymbol(symbol)) {
+            cryptoSymbols.push(alpacaSymbol);
+        } else {
+            stockSymbols.push(alpacaSymbol);
+        }
     });
     
-    const symbolStr = alpacaSymbols.join(',');
+    const allStocks: Stock[] = [];
+    
+    // Fetch stocks data
+    if (stockSymbols.length > 0) {
+        try {
+            const stocksData = await fetchAlpacaStocks(key, secret, stockSymbols, symbolMap);
+            if (stocksData) allStocks.push(...stocksData);
+        } catch (e) {
+            console.error('Error fetching stocks from Alpaca:', e);
+        }
+    }
+    
+    // Fetch crypto data
+    if (cryptoSymbols.length > 0) {
+        try {
+            const cryptoData = await fetchAlpacaCrypto(key, secret, cryptoSymbols, symbolMap);
+            if (cryptoData) allStocks.push(...cryptoData);
+        } catch (e) {
+            console.error('Error fetching crypto from Alpaca:', e);
+        }
+    }
+    
+    return allStocks.length > 0 ? allStocks : null;
+};
+
+// Fetch stock data using stocks endpoint
+const fetchAlpacaStocks = async (
+    key: string, 
+    secret: string, 
+    symbols: string[], 
+    symbolMap: Record<string, string>
+): Promise<Stock[] | null> => {
+    const symbolStr = symbols.join(',');
     const url = `https://data.alpaca.markets/v2/stocks/snapshots?symbols=${symbolStr}&feed=iex`;
 
     try {
@@ -490,27 +534,17 @@ const fetchAlpacaData = async (key: string, secret: string, symbols: string[]): 
             }
         });
 
-        if (response.status === 401 || response.status === 403) {
-            // console.warn("Alpaca Market Data: Unauthorized. Check keys.");
-            return null;
-        }
-
         if (!response.ok) {
-            const err = await response.json().catch(() => ({}));
-            // If unauthorized/forbidden occurs but wasn't caught by status check (rare but possible with gateways)
-            if (err.message?.toLowerCase().includes('unauthorized')) return null;
-
-            throw new Error(`Alpaca API Error: ${err.message || response.statusText}`);
+            throw new Error(`Alpaca Stocks API Error: ${response.statusText}`);
         }
 
         const data = await response.json();
         const stocks: Stock[] = [];
 
-        // Iterate through the Alpaca-formatted symbols
-        for (const alpacaSymbol of alpacaSymbols) {
+        for (const alpacaSymbol of symbols) {
             const item = data[alpacaSymbol];
             if (item) {
-                const originalSymbol = symbolMap[alpacaSymbol]; // Convert back to original format
+                const originalSymbol = symbolMap[alpacaSymbol];
                 const price = item.latestTrade?.p || item.dailyBar?.c || 0;
                 const prevClose = item.prevDailyBar?.c || item.dailyBar?.o || price;
                 
@@ -523,7 +557,7 @@ const fetchAlpacaData = async (key: string, secret: string, symbols: string[]): 
                 const volStr = vol > 1000000 ? `${(vol/1000000).toFixed(1)}M` : vol > 1000 ? `${(vol/1000).toFixed(1)}K` : vol.toString();
 
                 stocks.push({
-                    symbol: originalSymbol, // Use original format (e.g., BTC-USD)
+                    symbol: originalSymbol,
                     name: STOCK_NAMES[originalSymbol] || STOCK_NAMES[alpacaSymbol] || originalSymbol,
                     price: price,
                     changePercent: parseFloat(changePercent.toFixed(2)),
@@ -535,6 +569,80 @@ const fetchAlpacaData = async (key: string, secret: string, symbols: string[]): 
 
         return stocks.length > 0 ? stocks : null;
     } catch (e) {
+        console.error('Alpaca stocks fetch error:', e);
+        return null;
+    }
+};
+
+// Fetch crypto data using crypto endpoint
+const fetchAlpacaCrypto = async (
+    key: string, 
+    secret: string, 
+    symbols: string[], 
+    symbolMap: Record<string, string>
+): Promise<Stock[] | null> => {
+    // Alpaca crypto API requires format BTC/USD not BTCUSD
+    const symbolsWithSlash = symbols.map(s => {
+        // Convert BTCUSD to BTC/USD
+        if (s.length > 3 && s.endsWith('USD')) {
+            const base = s.substring(0, s.length - 3);
+            return `${base}/USD`;
+        }
+        return s;
+    });
+    const symbolStr = symbolsWithSlash.join(',');
+    const url = `https://data.alpaca.markets/v1beta3/crypto/us/latest/bars?symbols=${symbolStr}`;
+
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'APCA-API-KEY-ID': key,
+                'APCA-API-SECRET-KEY': secret,
+                'accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Alpaca Crypto API Error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const stocks: Stock[] = [];
+
+        // Alpaca crypto response structure: { bars: { "BTC/USD": {...}, "ETH/USD": {...} } }
+        const bars = data.bars || {};
+        
+        for (let i = 0; i < symbols.length; i++) {
+            const alpacaSymbol = symbols[i];
+            const symbolWithSlash = symbolsWithSlash[i];
+            const bar = bars[symbolWithSlash];
+            if (bar) {
+                const originalSymbol = symbolMap[alpacaSymbol];
+                const price = bar.c || 0; // close price
+                const prevClose = bar.o || price; // open price as previous
+                
+                let changePercent = 0;
+                if (prevClose > 0) {
+                    changePercent = ((price - prevClose) / prevClose) * 100;
+                }
+
+                const vol = bar.v || 0;
+                const volStr = vol > 1000000 ? `${(vol/1000000).toFixed(1)}M` : vol > 1000 ? `${(vol/1000).toFixed(1)}K` : vol.toString();
+
+                stocks.push({
+                    symbol: originalSymbol,
+                    name: STOCK_NAMES[originalSymbol] || STOCK_NAMES[alpacaSymbol] || originalSymbol,
+                    price: parseFloat(price.toFixed(2)),
+                    changePercent: parseFloat(changePercent.toFixed(2)),
+                    marketCap: 'N/A',
+                    volume: volStr
+                });
+            }
+        }
+
+        return stocks.length > 0 ? stocks : null;
+    } catch (e) {
+        console.error('Alpaca crypto fetch error:', e);
         return null;
     }
 };

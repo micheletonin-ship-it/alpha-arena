@@ -1,84 +1,64 @@
-// Test per verificare supporto crypto Alpaca
+// Test script per verificare endpoint crypto Alpaca
 const https = require('https');
 
-const ALPACA_KEY = 'AKHHZXTTH7Q72CYQAQBNN72QQH';
-const ALPACA_SECRET = '7vqCxHfGd3H23xYdnXcLt4bTfKDeExqe4yiLJnziirUb';
+const ALPACA_KEY = 'PKXWI4DU5YPOUUDL45BSVDQFYR';
+const ALPACA_SECRET = 'BT3qjpfSEXKVJbS6tHwxpFPtoxBkBfrCKvhPZi6GpVDD';
 
-// Test con diversi endpoint
-const tests = [
-  {
-    name: 'Crypto con feed=iex',
-    path: '/v2/stocks/snapshots?symbols=BTCUSD,ETHUSD&feed=iex'
-  },
-  {
-    name: 'Crypto senza feed',
-    path: '/v2/stocks/snapshots?symbols=BTCUSD,ETHUSD'
-  },
-  {
-    name: 'Crypto con feed=us_stocks',
-    path: '/v2/stocks/snapshots?symbols=BTCUSD,ETHUSD&feed=us_stocks'
+console.log('Testing Alpaca Crypto API...');
+console.log('Key:', ALPACA_KEY.substring(0, 10) + '...');
+console.log('');
+
+// Test crypto endpoint
+const cryptoOptions = {
+  hostname: 'data.alpaca.markets',
+  path: '/v1beta3/crypto/us/latest/bars?symbols=BTC/USD,ETH/USD,SOL/USD',
+  method: 'GET',
+  headers: {
+    'APCA-API-KEY-ID': ALPACA_KEY,
+    'APCA-API-SECRET-KEY': ALPACA_SECRET,
+    'accept': 'application/json'
   }
-];
+};
 
-async function runTest(test) {
-  return new Promise((resolve) => {
-    const options = {
-      hostname: 'data.alpaca.markets',
-      path: test.path,
-      method: 'GET',
-      headers: {
-        'APCA-API-KEY-ID': ALPACA_KEY,
-        'APCA-API-SECRET-KEY': ALPACA_SECRET,
-        'accept': 'application/json'
-      }
-    };
+const req = https.request(cryptoOptions, (res) => {
+  console.log('Status Code:', res.statusCode);
+  console.log('');
 
-    console.log(`\n=== ${test.name} ===`);
-    console.log(`Path: ${test.path}`);
+  if (res.statusCode === 200) {
+    console.log('✅ SUCCESS! Crypto endpoint is working!');
+  } else if (res.statusCode === 401 || res.statusCode === 403) {
+    console.log('❌ FAILED: Unauthorized - Check if your account has crypto access');
+  } else {
+    console.log('⚠️  Unexpected status code');
+  }
 
-    const req = https.request(options, (res) => {
-      console.log(`Status: ${res.statusCode}`);
-
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (json.BTCUSD) {
-            console.log('✅ BTCUSD trovato!');
-            const price = json.BTCUSD.latestTrade?.p || json.BTCUSD.dailyBar?.c;
-            console.log(`   Prezzo: $${price}`);
-          } else {
-            console.log('❌ BTCUSD non trovato nella risposta');
-          }
-          if (json.ETHUSD) {
-            console.log('✅ ETHUSD trovato!');
-            const price = json.ETHUSD.latestTrade?.p || json.ETHUSD.dailyBar?.c;
-            console.log(`   Prezzo: $${price}`);
-          }
-        } catch (e) {
-          console.log('⚠️  Errore parsing JSON');
-        }
-        resolve();
-      });
-    });
-
-    req.on('error', (error) => {
-      console.error('❌ Errore:', error.message);
-      resolve();
-    });
-
-    req.end();
+  let data = '';
+  res.on('data', (chunk) => {
+    data += chunk;
   });
-}
 
-async function runAllTests() {
-  for (const test of tests) {
-    await runTest(test);
-    await new Promise(r => setTimeout(r, 500)); // Pausa tra test
-  }
-  console.log('\n=== Test completati ===\n');
-}
+  res.on('end', () => {
+    try {
+      const json = JSON.parse(data);
+      console.log('Response preview:');
+      console.log(JSON.stringify(json, null, 2).substring(0, 800));
+      
+      if (json.bars) {
+        console.log('');
+        console.log('Crypto prices found:');
+        for (const [symbol, bar] of Object.entries(json.bars)) {
+          console.log(`  ${symbol}: $${bar.c}`);
+        }
+      }
+    } catch (e) {
+      console.log('Response (not JSON):');
+      console.log(data.substring(0, 300));
+    }
+  });
+});
 
-runAllTests();
+req.on('error', (error) => {
+  console.error('❌ Request error:', error.message);
+});
+
+req.end();
