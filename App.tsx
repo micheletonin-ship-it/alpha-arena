@@ -548,9 +548,15 @@ const AppContent: React.FC = () => {
 
       const data = await response.json();
       
-      setDataProvider(data.provider);
+      console.log('Backend response:', data);
+      
+      if (!data.success || !data.stocks) {
+        throw new Error(data.message || 'Backend returned invalid data');
+      }
+      
+      setDataProvider(data.provider || 'Alpaca');
 
-      if (data.stocks.length > 0) {
+      if (data.stocks && data.stocks.length > 0) {
         // Apply championship ticker filtering if active
         let filteredStocks = data.stocks;
         if (currentChampionshipIdRef.current) {

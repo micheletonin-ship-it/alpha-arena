@@ -52,9 +52,23 @@ app.post('/api/market-data', async (req, res) => {
   try {
     const { symbols } = req.body;
 
+    console.log('[Alpaca Proxy] Request received for symbols:', symbols);
+
     if (!symbols || !Array.isArray(symbols)) {
       return res.status(400).json({ 
-        error: 'Missing or invalid symbols array' 
+        success: false,
+        error: 'Missing or invalid symbols array',
+        stocks: []
+      });
+    }
+
+    // If symbols array is empty, return empty result immediately
+    if (symbols.length === 0) {
+      console.log('[Alpaca Proxy] No symbols provided, returning empty result');
+      return res.json({
+        success: true,
+        stocks: [],
+        provider: 'Alpaca'
       });
     }
 
@@ -62,10 +76,17 @@ app.post('/api/market-data', async (req, res) => {
     const ALPACA_KEY = process.env.ALPACA_KEY;
     const ALPACA_SECRET = process.env.ALPACA_SECRET;
 
+    console.log('[Alpaca Proxy] Credentials check:', {
+      hasKey: !!ALPACA_KEY,
+      hasSecret: !!ALPACA_SECRET
+    });
+
     if (!ALPACA_KEY || !ALPACA_SECRET) {
       return res.status(500).json({ 
+        success: false,
         error: 'Alpaca credentials not configured on server',
-        message: 'Please configure ALPACA_KEY and ALPACA_SECRET environment variables'
+        message: 'Please configure ALPACA_KEY and ALPACA_SECRET environment variables',
+        stocks: []
       });
     }
 
