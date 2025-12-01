@@ -53,6 +53,17 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
       };
     });
 
+    // DEBUG: Log transactions to identify duplicates
+    console.log('=== STATISTICS DEBUG ===');
+    console.log('Total transactions received:', transactions.length);
+    console.log('Transactions:', transactions.map(t => ({
+        id: t.id,
+        type: t.type,
+        amount: t.amount,
+        symbol: t.symbol,
+        date: t.date.substring(0, 10)
+    })));
+    
     transactions.forEach(tx => {
         const amount = Number(tx.amount) || 0; // Ensure it's a number
         
@@ -62,10 +73,18 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
             totalWithdrawals += amount;
         } else if (tx.type === 'buy') {
             totalBuyValue += amount;
+            console.log(`BUY: ${tx.symbol} - $${amount} (running total: $${totalBuyValue})`);
         } else if (tx.type === 'sell') {
             totalSellValue += amount;
+            console.log(`SELL: ${tx.symbol} - $${amount} (running total: $${totalSellValue})`);
         }
     });
+    
+    console.log('Final totals:');
+    console.log('- Deposits:', totalDeposits);
+    console.log('- Withdrawals:', totalWithdrawals);
+    console.log('- Buy Value:', totalBuyValue);
+    console.log('- Sell Value:', totalSellValue);
 
     const totalPortfolioReturn = totalAssetValue - totalCostBasis;
     const totalPortfolioReturnPercent = totalCostBasis > 0 ? (totalPortfolioReturn / totalCostBasis) * 100 : 0;
