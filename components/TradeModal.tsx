@@ -18,9 +18,7 @@ interface TradeModalProps {
   strategies?: Strategy[]; // Available strategies
   defaultStrategyId?: string;
   championshipId: string; // UPDATED: now mandatory string
-  maxDailyBuys: number; // NEW
-  maxTradeAmount: number; // NEW
-  currentDailyBuyCount: number; // NEW
+  maxTradeAmount: number; // Max single trade amount limit
 }
 
 export const TradeModal: React.FC<TradeModalProps> = ({ 
@@ -37,9 +35,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   strategies = [],
   defaultStrategyId,
   championshipId, // UPDATED: now mandatory
-  maxDailyBuys, // NEW
-  maxTradeAmount, // NEW
-  currentDailyBuyCount, // NEW
+  maxTradeAmount,
 }) => {
   const [quantity, setQuantity] = useState<string>('');
   const [selectedStrategyId, setSelectedStrategyId] = useState<string>(defaultStrategyId || '');
@@ -102,10 +98,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
       if (type === 'buy') {
           if (estimatedTotal > userBalance) {
               error = `Fondi insufficienti.`;
-          } else if (estimatedTotal > maxTradeAmount) { // NEW: Max trade amount check
+          } else if (estimatedTotal > maxTradeAmount) {
               error = `Il valore del trade supera il limite massimo di $${maxTradeAmount.toLocaleString()}.`;
-          } else if (currentDailyBuyCount >= maxDailyBuys) { // NEW: Daily buy limit check
-              error = `Hai raggiunto il limite massimo di ${maxDailyBuys} acquisti al giorno.`;
           }
       } else if (type === 'sell' && qty > userHoldingQuantity) {
           error = `Azioni insufficienti. Possiedi: ${userHoldingQuantity}`;
@@ -256,11 +250,6 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                                  {type === 'buy' && estimatedTotal > maxTradeAmount && (
                                      <p className="mt-1">
                                         Il valore massimo consentito per un singolo acquisto è di $${maxTradeAmount.toLocaleString()}.
-                                     </p>
-                                 )}
-                                 {type === 'buy' && currentDailyBuyCount >= maxDailyBuys && (
-                                     <p className="mt-1">
-                                        Hai già effettuato ${currentDailyBuyCount} acquisti oggi. Il limite è di ${maxDailyBuys} acquisti al giorno.
                                      </p>
                                  )}
                              </div>

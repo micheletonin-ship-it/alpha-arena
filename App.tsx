@@ -25,7 +25,6 @@ import { RefreshCw, Search, Bot, Zap, ExternalLink, Trophy, Shield } from 'lucid
 import { APP_CREDENTIALS } from './credentials.config';
 
 // NEW: Trading Limits Constants
-const MAX_DAILY_BUYS = 3;
 const MAX_TRADE_AMOUNT = 10000; // $10,000 per trade
 
 // NEW: Error Boundary Component
@@ -882,10 +881,7 @@ const AppContent: React.FC = () => {
               alert(`Acquisto fallito: Il valore del trade (${totalValue.toLocaleString(undefined, {style: 'currency', currency: 'USD'})}) supera il limite massimo di ${MAX_TRADE_AMOUNT.toLocaleString(undefined, {style: 'currency', currency: 'USD'})} per trade.`);
               return;
           }
-          if (dailyBuyCount >= MAX_DAILY_BUYS) {
-              alert(`Acquisto fallito: Hai raggiunto il limite massimo di ${MAX_DAILY_BUYS} acquisti al giorno.`);
-              return;
-          }
+          // Daily buy limit removed - unlimited purchases allowed
       }
 
       try {
@@ -1314,9 +1310,7 @@ const AppContent: React.FC = () => {
          strategies={strategies}
          defaultStrategyId={tradeDefaultStrategyId || (currentUser ? currentUser.activeStrategyId : undefined)}
          championshipId={currentChampionshipId} // UPDATED: now string
-         maxDailyBuys={MAX_DAILY_BUYS} // NEW
-         maxTradeAmount={MAX_TRADE_AMOUNT} // NEW
-         currentDailyBuyCount={dailyBuyCount} // NEW
+         maxTradeAmount={MAX_TRADE_AMOUNT}
       />
 
     </Layout>
