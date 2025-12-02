@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { Theme } from '../types';
-import { Mail, Lock, ArrowRight, User as UserIcon } from 'lucide-react';
+import { Mail, Lock, ArrowRight, User as UserIcon, AlertCircle, CheckCircle, TrendingUp } from 'lucide-react';
+import { signUpWithEmail, signInWithEmail, resendConfirmationEmail } from '../services/cloud';
 
 interface LoginProps {
   onLogin: (email: string, name: string) => void;
@@ -9,18 +10,78 @@ interface LoginProps {
   isLoading?: boolean;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading = false }) => {
+export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externalLoading = false }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [isDuplicateEmail, setIsDuplicateEmail] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const displayName = name || (email.split('@')[0]);
-    const finalName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
-    onLogin(email, finalName);
+    setError(null);
+    setSuccessMessage(null);
+    setIsDuplicateEmail(false);
+    setLoading(true);
+
+    try {
+      if (isLogin) {
+        // Login
+        const result = await signInWithEmail(email, password);
+        if (result.success && result.user) {
+          const displayName = result.user.user_metadata?.display_name || email.split('@')[0];
+          const finalName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+          onLogin(email, finalName);
+        } else {
+          setError(result.message || 'Login fallito');
+        }
+      } else {
+        // Sign up
+        const displayName = name || email.split('@')[0];
+        const finalName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+        
+        const result = await signUpWithEmail(email, password, finalName);
+        if (result.success) {
+          if (result.requiresConfirmation) {
+            setAwaitingConfirmation(true);
+            setSuccessMessage(result.message || 'Controlla la tua email per confermare la registrazione!');
+          } else {
+            // Auto-login if no confirmation required
+            onLogin(email, finalName);
+          }
+        } else {
+          setError(result.message || 'Registrazione fallita');
+          if ((result as any).isDuplicate) {
+            setIsDuplicateEmail(true);
+          }
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'Si è verificato un errore');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleResendConfirmation = async () => {
+    setError(null);
+    setLoading(true);
+    
+    const result = await resendConfirmationEmail(email);
+    if (result.success) {
+      setSuccessMessage(result.message || 'Email inviata!');
+    } else {
+      setError(result.message || 'Errore invio email');
+    }
+    
+    setLoading(false);
+  };
+
+  const isFormLoading = loading || externalLoading;
 
   return (
     <div className={`flex min-h-screen w-full flex-col items-center justify-center transition-colors duration-300 ${theme === 'dark' ? 'bg-gradient-to-br from-[#121212] via-[#1a1a1a] to-[#0a0a0a]' : 'bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100'}`}>
@@ -31,7 +92,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading = false 
           {/* Logo & Tagline */}
           <div className="animate-in fade-in slide-in-from-top duration-500">
             <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="h-12 w-12 rounded-xl bg-gradient-to-tr from-neonGreen to-cyan-500 shadow-lg shadow-neonGreen/50"></div>
+              <TrendingUp size={48} className="text-neonGreen drop-shadow-lg" strokeWidth={2.5} />
               <span className={`text-3xl font-bold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                 ALPHA<span className="text-neonGreen">ARENA</span>
               </span>
@@ -51,7 +112,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading = false 
         <div className={`hidden w-1/2 flex-col justify-between p-12 md:flex ${theme === 'dark' ? 'bg-[#1E1E1E]' : 'bg-blue-600'}`}>
            <div>
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-neonGreen to-cyan-500"></div>
+                <TrendingUp size={32} className="text-neonGreen drop-shadow-lg" strokeWidth={2.5} />
                 <span className={`text-xl font-bold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-white'}`}>
                   ALPHA<span className="text-neonGreen">ARENA</span>
                 </span>
@@ -144,13 +205,52 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading = false 
                  <button type="button" className="text-xs font-medium text-neonGreen hover:underline">Forgot password?</button>
               </div>
 
+              {/* Error/Success Messages */}
+              {error && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
+                    <AlertCircle size={16} />
+                    <span>{error}</span>
+                  </div>
+                  {isDuplicateEmail && (
+                    <button
+                      type="button"
+                      onClick={() => setIsLogin(true)}
+                      className="w-full text-center text-xs text-neonGreen hover:underline font-semibold"
+                    >
+                      ← Vai al Login
+                    </button>
+                  )}
+                </div>
+              )}
+              
+              {successMessage && (
+                <div className="flex items-center gap-2 rounded-lg bg-green-500/10 border border-green-500/20 p-3 text-sm text-green-400">
+                  <CheckCircle size={16} />
+                  <span>{successMessage}</span>
+                </div>
+              )}
+
+              {awaitingConfirmation && (
+                <div className="text-center space-y-2">
+                  <button 
+                    type="button"
+                    onClick={handleResendConfirmation}
+                    disabled={isFormLoading}
+                    className="text-xs text-neonGreen hover:underline disabled:opacity-50"
+                  >
+                    Non hai ricevuto l'email? Invia di nuovo
+                  </button>
+                </div>
+              )}
+
               <button 
                 type="submit" 
-                disabled={isLoading}
-                className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-4 font-bold text-black transition-all hover:scale-[1.02] disabled:opacity-70 ${isLoading ? 'cursor-not-allowed bg-gray-500' : 'bg-neonGreen shadow-lg shadow-neonGreen/20'}`}
+                disabled={isFormLoading}
+                className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-4 font-bold text-black transition-all hover:scale-[1.02] disabled:opacity-70 ${isFormLoading ? 'cursor-not-allowed bg-gray-500' : 'bg-neonGreen shadow-lg shadow-neonGreen/20'}`}
               >
-                {isLoading ? 'Connecting to Cloud...' : (isLogin ? 'Sign In' : 'Create Account')}
-                {!isLoading && <ArrowRight size={20} />}
+                {isFormLoading ? 'Connecting to Cloud...' : (isLogin ? 'Sign In' : 'Create Account')}
+                {!isFormLoading && <ArrowRight size={20} />}
               </button>
            </form>
 

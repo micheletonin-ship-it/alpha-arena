@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { NavItem, Theme, User } from '../types'; // Import User type
-import { LayoutDashboard, Settings, Sun, Moon, BarChart2, Menu, X, DollarSign, BrainCircuit, Activity, Bot, Radar, LineChart, User as UserIcon, Trophy, Briefcase, Shield } from 'lucide-react'; // Added Shield icon
+import { LayoutDashboard, Settings, Sun, Moon, BarChart2, Menu, X, DollarSign, BrainCircuit, Activity, Bot, Radar, LineChart, User as UserIcon, Trophy, Briefcase, Shield, TrendingUp } from 'lucide-react'; // Added Shield icon
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -66,7 +66,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, toggleTheme, ac
       <aside className={`fixed left-0 top-0 hidden h-full w-64 flex-col border-r backdrop-blur-md md:flex ${theme === 'dark' ? 'border-white/10 bg-black/40' : 'border-gray-200 bg-white/70'}`}>
         <div className="flex h-20 items-center px-8">
           <div className="flex items-center gap-2">
-            <div className={`h-8 w-8 rounded-lg bg-gradient-to-tr from-neonGreen to-cyan-500`}></div>
+            <TrendingUp size={32} className="text-neonGreen drop-shadow-lg" strokeWidth={2.5} />
             <span className={`text-xl font-bold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
               ALPHA<span className="text-neonGreen">ARENA</span>
             </span>
@@ -179,7 +179,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, toggleTheme, ac
           <aside className={`relative flex w-4/5 max-w-xs flex-col border-r shadow-2xl backdrop-blur-xl animate-in slide-in-from-left duration-300 ${theme === 'dark' ? 'bg-background/95 border-white/10' : 'bg-white/95 border-gray-200'}`}>
              <div className="flex h-20 items-center justify-between px-6">
                 <div className="flex items-center gap-2">
-                  <div className={`h-8 w-8 rounded-lg bg-gradient-to-tr from-neonGreen to-cyan-500`}></div>
+                  <TrendingUp size={32} className="text-neonGreen drop-shadow-lg" strokeWidth={2.5} />
                   <span className={`text-xl font-bold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                     ALPHA<span className="text-neonGreen">ARENA</span>
                   </span>
