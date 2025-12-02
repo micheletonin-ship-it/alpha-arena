@@ -15,7 +15,7 @@ const getSupabaseErrorMessage = (e: any): string => {
     return e.message || JSON.stringify(e);
 }
 
-export const initCloud = (config: CloudConfig) => {
+const initCloud = (config: CloudConfig) => {
     if (!config.url || !config.key) return;
     
     // Prevent creating multiple instances - check if already initialized
@@ -33,7 +33,7 @@ export const initCloud = (config: CloudConfig) => {
     }
 };
 
-export const getCloudConfig = (): CloudConfig | null => {
+const getCloudConfig = (): CloudConfig | null => {
     const url = localStorage.getItem('alphaarena_supabase_url');
     const key = localStorage.getItem('alphaarena_supabase_key');
     if (url && key) return { url, key };
@@ -41,10 +41,186 @@ export const getCloudConfig = (): CloudConfig | null => {
 };
 
 // Expose client for Database Service
-export const getSupabase = () => supabase;
+const getSupabase = () => supabase;
+
+// ===== SUPABASE AUTH FUNCTIONS =====
+
+/**
+ * Sign up with email and password
+ * Sends confirmation email automatically if enabled in Supabase
+ */
+const signUpWithEmail = async (email: string, password: string, name: string) => {
+    if (!supabase) {
+        const config = getCloudConfig();
+        if (config) initCloud(config);
+        else return { success: false, message: "Supabase not initialized" };
+    }
+    
+    try {
+        const { data, error } = await supabase!.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    display_name: name,
+                }
+            }
+        });
+        
+        if (error) {
+            // Check for duplicate email error
+            if (error.message.toLowerCase().includes('already') || 
+                error.message.toLowerCase().includes('exists') ||
+                error.message.toLowerCase().includes('registered')) {
+                return { 
+                    success: false, 
+                    message: "Questa email è già registrata. Prova ad effettuare il login.",
+                    isDuplicate: true
+                };
+            }
+            
+            // Check for invalid email
+            if (error.message.toLowerCase().includes('invalid')) {
+                return { 
+                    success: false, 
+                    message: "Indirizzo email non valido. Usa un indirizzo email reale."
+                };
+            }
+            
+            // Check for weak password
+            if (error.message.toLowerCase().includes('password')) {
+                return { 
+                    success: false, 
+                    message: "La password deve essere di almeno 6 caratteri."
+                };
+            }
+            
+            return { success: false, message: error.message };
+        }
+        
+        // Check if email confirmation is required
+        if (data.user && !data.session) {
+            return { 
+                success: true, 
+                message: "Controlla la tua email per confermare la registrazione!",
+                requiresConfirmation: true 
+            };
+        }
+        
+        return { success: true, message: "Registrazione completata!", user: data.user };
+    } catch (e: any) {
+        return { success: false, message: getSupabaseErrorMessage(e) };
+    }
+};
+
+/**
+ * Sign in with email and password
+ */
+const signInWithEmail = async (email: string, password: string) => {
+    if (!supabase) {
+        const config = getCloudConfig();
+        if (config) initCloud(config);
+        else return { success: false, message: "Supabase not initialized" };
+    }
+    
+    try {
+        const { data, error } = await supabase!.auth.signInWithPassword({
+            email,
+            password,
+        });
+        
+        if (error) {
+            return { success: false, message: error.message };
+        }
+        
+        return { success: true, user: data.user, session: data.session };
+    } catch (e: any) {
+        return { success: false, message: getSupabaseErrorMessage(e) };
+    }
+};
+
+/**
+ * Sign out current user
+ */
+const signOut = async () => {
+    if (!supabase) return { success: false, message: "Supabase not initialized" };
+    
+    try {
+        const { error } = await supabase!.auth.signOut();
+        if (error) {
+            return { success: false, message: error.message };
+        }
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, message: getSupabaseErrorMessage(e) };
+    }
+};
+
+/**
+ * Get current session
+ */
+const getCurrentSession = async () => {
+    if (!supabase) return null;
+    
+    try {
+        const { data: { session } } = await supabase!.auth.getSession();
+        return session;
+    } catch (e: any) {
+        console.error("Get session error:", getSupabaseErrorMessage(e));
+        return null;
+    }
+};
+
+/**
+ * Get current user
+ */
+const getCurrentUser = async () => {
+    if (!supabase) return null;
+    
+    try {
+        const { data: { user } } = await supabase!.auth.getUser();
+        return user;
+    } catch (e: any) {
+        console.error("Get user error:", getSupabaseErrorMessage(e));
+        return null;
+    }
+};
+
+/**
+ * Listen to auth state changes
+ */
+const onAuthStateChange = (callback: (event: string, session: any) => void) => {
+    if (!supabase) return () => {};
+    
+    const { data: { subscription } } = supabase!.auth.onAuthStateChange(callback);
+    
+    return () => subscription.unsubscribe();
+};
+
+/**
+ * Resend confirmation email
+ */
+const resendConfirmationEmail = async (email: string) => {
+    if (!supabase) return { success: false, message: "Supabase not initialized" };
+    
+    try {
+        const { error } = await supabase!.auth.resend({
+            type: 'signup',
+            email,
+        });
+        
+        if (error) {
+            return { success: false, message: error.message };
+        }
+        
+        return { success: true, message: "Email di conferma inviata!" };
+    } catch (e: any) {
+        return { success: false, message: getSupabaseErrorMessage(e) };
+    }
+};
 
 // Test connection validity
-export const checkConnection = async (): Promise<{ success: boolean; message: string }> => {
+const checkConnection = async (): Promise<{ success: boolean; message: string }> => {
     if (!supabase) {
         const config = getCloudConfig();
         if (config) initCloud(config);
@@ -74,7 +250,7 @@ export const checkConnection = async (): Promise<{ success: boolean; message: st
 };
 
 // Sync encrypted keys to cloud
-export const syncKeysToCloud = async (email: string, encryptedKey: string, encryptedSecret: string) => {
+const syncKeysToCloud = async (email: string, encryptedKey: string, encryptedSecret: string) => {
     if (!supabase) {
         const config = getCloudConfig();
         if (config) initCloud(config);
@@ -104,7 +280,7 @@ export const syncKeysToCloud = async (email: string, encryptedKey: string, encry
 };
 
 // Sync encrypted keys from cloud
-export const syncKeysFromCloud = async (email: string): Promise<{key: string, secret: string} | null> => {
+const syncKeysFromCloud = async (email: string): Promise<{key: string, secret: string} | null> => {
     if (!supabase) {
         const config = getCloudConfig();
         if (config) initCloud(config);
@@ -130,4 +306,21 @@ export const syncKeysFromCloud = async (email: string): Promise<{key: string, se
         console.error("Cloud sync download error (likely network issue or invalid credentials):", getSupabaseErrorMessage(e));
         return null;
     }
+};
+
+// Export all functions at once to avoid tree-shaking issues
+export {
+    initCloud,
+    getCloudConfig,
+    getSupabase,
+    signUpWithEmail,
+    signInWithEmail,
+    signOut,
+    getCurrentSession,
+    getCurrentUser,
+    onAuthStateChange,
+    resendConfirmationEmail,
+    checkConnection,
+    syncKeysToCloud,
+    syncKeysFromCloud
 };
