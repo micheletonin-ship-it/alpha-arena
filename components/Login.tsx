@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Theme } from '../types';
-import { Mail, Lock, ArrowRight, User as UserIcon, AlertCircle, CheckCircle, TrendingUp } from 'lucide-react';
+import { Mail, Lock, ArrowRight, User as UserIcon, AlertCircle, CheckCircle, TrendingUp, Trophy, Bot, Sparkles, MessageSquare } from 'lucide-react';
 import { signUpWithEmail, signInWithEmail, resendConfirmationEmail } from '../services/cloud';
 
 interface LoginProps {
@@ -97,10 +97,53 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
                 ALPHA<span className="text-neonGreen">ARENA</span>
               </span>
             </div>
-            <p className={`text-xl font-bold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-              Think Faster. Trade Smarter.<br/>
+            <p className={`text-lg font-bold ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              Think Faster.<br/>
+              Trade Smarter.<br/>
               Win Bigger.
             </p>
+            <p className={`text-sm mt-4 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>
+              Campionati di trading su Crypto & Azioni USA<br/>
+              con capitale virtuale, prezzi reali e AI integrata.
+            </p>
+            <div className={`mt-6 space-y-3 text-left ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'}`}>
+              <div>
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Trophy size={16} className="text-neonGreen flex-shrink-0" />
+                  <span>Campionati multipli</span>
+                </div>
+                <p className={`text-xs mt-1 ml-6 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>
+                  Gratis o con buy-in e montepremi reale.
+                </p>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Bot size={16} className="text-neonGreen flex-shrink-0" />
+                  <span>Strategie automatiche</span>
+                </div>
+                <p className={`text-xs mt-1 ml-6 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>
+                  Il sistema opera automaticamente sulla strategia scelta.
+                </p>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Sparkles size={16} className="text-neonGreen flex-shrink-0" />
+                  <span>AI Suggestions</span>
+                </div>
+                <p className={`text-xs mt-1 ml-6 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>
+                  Strategia AI consigliata per ogni titolo.
+                </p>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <MessageSquare size={16} className="text-neonGreen flex-shrink-0" />
+                  <span>ChatBot portafoglio</span>
+                </div>
+                <p className={`text-xs mt-1 ml-6 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>
+                  Chiedi <em>"Come sto andando?"</em> per una risposta immediata.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -117,11 +160,54 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
                   ALPHA<span className="text-neonGreen">ARENA</span>
                 </span>
               </div>
-              <div className="mt-16">
-                <h1 className="text-5xl font-bold leading-tight text-white">
-                  Think Faster. Trade Smarter.<br/>
+              <div className="mt-16 space-y-6">
+                <h1 className="text-4xl font-bold leading-tight text-white">
+                  Think Faster.<br/>
+                  Trade Smarter.<br/>
                   Win Bigger.
                 </h1>
+                <p className="text-lg text-gray-300">
+                  Campionati di trading su Crypto & Azioni USA<br/>
+                  con capitale virtuale, prezzi reali e AI integrata.
+                </p>
+                <div className="space-y-4 text-white/90">
+                  <div>
+                    <div className="flex items-center gap-3 font-medium">
+                      <Trophy size={20} className="text-neonGreen flex-shrink-0" />
+                      <span>Campionati multipli</span>
+                    </div>
+                    <p className="text-sm text-gray-400 mt-1 ml-8">
+                      Gratis o con buy-in e montepremi reale.
+                    </p>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-3 font-medium">
+                      <Bot size={20} className="text-neonGreen flex-shrink-0" />
+                      <span>Strategie automatiche</span>
+                    </div>
+                    <p className="text-sm text-gray-400 mt-1 ml-8">
+                      Il sistema opera automaticamente sulla strategia scelta.
+                    </p>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-3 font-medium">
+                      <Sparkles size={20} className="text-neonGreen flex-shrink-0" />
+                      <span>AI Suggestions</span>
+                    </div>
+                    <p className="text-sm text-gray-400 mt-1 ml-8">
+                      Strategia AI consigliata per ogni titolo.
+                    </p>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-3 font-medium">
+                      <MessageSquare size={20} className="text-neonGreen flex-shrink-0" />
+                      <span>ChatBot portafoglio</span>
+                    </div>
+                    <p className="text-sm text-gray-400 mt-1 ml-8">
+                      Chiedi <em>"Come sto andando?"</em> per una risposta immediata.
+                    </p>
+                  </div>
+                </div>
               </div>
            </div>
            
@@ -260,6 +346,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
               </p>
            </div>
         </div>
+      </div>
+
+      {/* Footer */}
+      <div className="mt-8 text-center px-4 pb-6">
+        <p className={`text-xs ${theme === 'dark' ? 'text-gray-600' : 'text-gray-500'}`}>
+          © 2025 Alpha Arena · Trading Championships & AI Insights
+        </p>
+        <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-700' : 'text-gray-600'}`}>
+          Created by Michele Tonin
+        </p>
       </div>
     </div>
   );
