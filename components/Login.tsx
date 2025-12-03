@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Theme } from '../types';
 import { Mail, Lock, ArrowRight, User as UserIcon, AlertCircle, CheckCircle, TrendingUp, Trophy, Bot, Sparkles, MessageSquare } from 'lucide-react';
 import { signUpWithEmail, signInWithEmail, resendConfirmationEmail, requestPasswordReset } from '../services/cloud';
+import { getUserByEmail } from '../services/database';
 
 interface LoginProps {
   onLogin: (email: string, name: string) => void;
@@ -22,6 +23,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
   const [isDuplicateEmail, setIsDuplicateEmail] = useState(false);
   const [errorType, setErrorType] = useState<string | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [isLegacyUser, setIsLegacyUser] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,8 +41,27 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
           const finalName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
           onLogin(email, finalName);
         } else {
-          setError(result.message || 'Login fallito');
-          setErrorType((result as any).errorType || null);
+          const resultErrorType = (result as any).errorType;
+          
+          // Check if it's a legacy user (exists in DB but not in Supabase Auth)
+          if (resultErrorType === 'invalid_credentials' && email) {
+            console.log('[Login] Checking for legacy user:', email);
+            const legacyUser = await getUserByEmail(email);
+            
+            if (legacyUser) {
+              console.log('[Login] Legacy user detected:', legacyUser.name);
+              setIsLegacyUser(true);
+              setError('Account da migrare. Il tuo account esiste ma deve essere aggiornato al nuovo sistema di autenticazione.');
+              setErrorType('legacy_user');
+            } else {
+              // Normal invalid credentials
+              setError(result.message || 'Login fallito');
+              setErrorType(resultErrorType);
+            }
+          } else {
+            setError(result.message || 'Login fallito');
+            setErrorType(resultErrorType);
+          }
         }
       } else {
         // Sign up
@@ -333,6 +354,23 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
                   </div>
                   
                   {/* Contextual help based on error type */}
+                  {errorType === 'legacy_user' && isLegacyUser && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 p-3 text-xs text-yellow-400">
+                        <AlertCircle size={14} />
+                        <span>Clicca qui sotto per migrare il tuo account e impostare una nuova password. Riceverai un'email con le istruzioni.</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleForgotPassword}
+                        disabled={isFormLoading}
+                        className="w-full text-center text-sm text-black bg-neonGreen hover:bg-neonGreen/90 py-3 rounded-lg font-bold disabled:opacity-50 transition-all"
+                      >
+                        🔄 Migra Account e Reimposta Password
+                      </button>
+                    </div>
+                  )}
+                  
                   {errorType === 'email_not_confirmed' && email && (
                     <button
                       type="button"
@@ -344,7 +382,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
                     </button>
                   )}
                   
-                  {errorType === 'invalid_credentials' && isLogin && (
+                  {errorType === 'invalid_credentials' && isLogin && !isLegacyUser && (
                     <button
                       type="button"
                       onClick={handleForgotPassword}
