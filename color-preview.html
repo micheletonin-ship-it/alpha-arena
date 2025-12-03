@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaArena - Green Color Palette Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%);
+            min-height: 100vh;
+        }
+        
+        .option-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .option-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        /* Current Neon Green */
+        .neon-green {
+            --primary: #39FF14;
+            --primary-rgb: 57, 255, 20;
+        }
+        
+        /* Option 1: Emerald Finance */
+        .emerald-finance {
+            --primary: #10B981;
+            --primary-rgb: 16, 185, 129;
+        }
+        
+        /* Option 2: Sage Premium */
+        .sage-premium {
+            --primary: #059669;
+            --primary-rgb: 5, 150, 105;
+        }
+        
+        /* Option 3: Mint Professional */
+        .mint-professional {
+            --primary: #14B8A6;
+            --primary-rgb: 20, 184, 166;
+        }
+        
+        /* Option 4: Forest Elite */
+        .forest-elite {
+            --primary: #16A34A;
+            --primary-rgb: 22, 163, 74;
+        }
+        
+        .color-primary {
+            color: var(--primary);
+        }
+        
+        .bg-primary {
+            background-color: var(--primary);
+        }
+        
+        .border-primary {
+            border-color: var(--primary);
+        }
+        
+        .shadow-primary {
+            box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.3);
+        }
+        
+        .glow-primary {
+            box-shadow: 0 0 30px rgba(var(--primary-rgb), 0.15);
+        }
+    </style>
+</head>
+<body class="text-white p-8 antialiased">
+    
+    <!-- Header -->
+    <div class="max-w-7xl mx-auto mb-12 text-center">
+        <h1 class="text-4xl font-bold mb-4">🎨 AlphaArena Green Palette Comparison</h1>
+        <p class="text-gray-400 text-lg">Confronta le 4 opzioni premium per scegliere la tonalità perfetta</p>
+        <div class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full">
+            <span class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>
+            <span class="text-sm text-gray-400">Colore attuale: Neon Green #39FF14</span>
+        </div>
+    </div>
+
+    <!-- Current Color Preview -->
+    <div class="max-w-7xl mx-auto mb-12">
+        <div class="neon-green option-card bg-[#1E1E1E] rounded-3xl p-8 border border-white/10">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-white mb-2">⚡ Colore Attuale: Neon Green</h2>
+                    <p class="text-gray-400">Verde neon molto acceso - Alta energia</p>
+                </div>
+                <div class="px-6 py-3 bg-primary text-black font-bold rounded-xl">
+                    #39FF14
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Button -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Primary Button</p>
+                    <button class="w-full bg-primary text-black font-bold py-3 px-4 rounded-xl shadow-primary hover:scale-105 transition-all">
+                        Sign In →
+                    </button>
+                </div>
+                
+                <!-- Badge -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Badge / Status</p>
+                    <div class="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-xs font-bold color-primary border border-primary/20">
+                            ● Active
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Text -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Text & Icons</p>
+                    <div class="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <p class="color-primary font-bold text-lg">$125,840.00</p>
+                        <p class="color-primary text-xs mt-1">+$5,240 (+4.2%)</p>
+                    </div>
+                </div>
+                
+                <!-- Card Border -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Card Glow</p>
+                    <div class="bg-white/5 rounded-xl p-4 border border-primary glow-primary">
+                        <p class="text-xs text-gray-400">Active Context</p>
+                        <p class="color-primary font-bold mt-1">Selected</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Options Grid -->
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Option 1: Emerald Finance -->
+        <div class="emerald-finance option-card bg-[#1E1E1E] rounded-3xl p-8 border border-white/10 hover:border-primary/30 glow-primary">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-2xl font-bold text-white">Opzione 1: Emerald Finance</h2>
+                        <span class="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs font-bold rounded-full">⭐ Consigliata</span>
+                    </div>
+                    <p class="text-gray-400 mt-1">Elegante e professionale - Crescita & Successo</p>
+                </div>
+                <div class="px-6 py-3 bg-primary text-white font-bold rounded-xl">
+                    #10B981
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <!-- Button -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Primary Button</p>
+                    <button class="w-full bg-primary text-white font-bold py-3 px-4 rounded-xl shadow-primary hover:scale-105 transition-all">
+                        Sign In →
+                    </button>
+                </div>
+                
+                <!-- Badge -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Badge / Status</p>
+                    <div class="bg-white/5 rounded-xl p-4 border border-white/10 flex items-center justify-center">
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-xs font-bold color-primary border border-primary/20">
+                            ● Active
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Text -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Text & Values</p>
+                    <div class="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <p class="color-primary font-bold text-lg">$125,840.00</p>
+                        <p class="color-primary text-xs mt-1">+$5,240 (+4.2%)</p>
+                    </div>
+                </div>
+                
+                <!-- Card Border -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Active Card</p>
+                    <div class="bg-white/5 rounded-xl p-4 border border-primary glow-primary">
+                        <p class="text-xs text-gray-400">Context</p>
+                        <p class="color-primary font-bold mt-1">Selected</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pt-4 border-t border-white/10 text-sm text-gray-400">
+                <strong class="color-primary">Mood:</strong> Fiducia • Stabilità • Professionalità
+            </div>
+        </div>
+
+        <!-- Option 2: Sage Premium -->
+        <div class="sage-premium option-card bg-[#1E1E1E] rounded-3xl p-8 border border-white/10 hover:border-primary/30 glow-primary">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Opzione 2: Sage Premium</h2>
+                    <p class="text-gray-400 mt-1">Sofisticato e maturo - Lusso discreto</p>
+                </div>
+                <div class="px-6 py-3 bg-primary text-white font-bold rounded-xl">
+                    #059669
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <!-- Button -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Primary Button</p>
+                    <button class="w-full bg-primary text-white font-bold py-3 px-4 rounded-xl shadow-primary hover:scale-105 transition-all">
+                        Sign In →
+                    </button>
+                </div>
+                
+                <!-- Badge -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Badge / Status</p>
+                    <div class="bg-white/5 rounded-xl p-4 border border-white/10 flex items-center justify-center">
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-xs font-bold color-primary border border-primary/20">
+                            ● Active
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Text -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Text & Values</p>
+                    <div class="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <p class="color-primary font-bold text-lg">$125,840.00</p>
+                        <p class="color-primary text-xs mt-1">+$5,240 (+4.2%)</p>
+                    </div>
+                </div>
+                
+                <!-- Card Border -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Active Card</p>
+                    <div class="bg-white/5 rounded-xl p-4 border border-primary glow-primary">
+                        <p class="text-xs text-gray-400">Context</p>
+                        <p class="color-primary font-bold mt-1">Selected</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pt-4 border-t border-white/10 text-sm text-gray-400">
+                <strong class="color-primary">Mood:</strong> Lusso • Raffinatezza • Calma
+            </div>
+        </div>
+
+        <!-- Option 3: Mint Professional -->
+        <div class="mint-professional option-card bg-[#1E1E1E] rounded-3xl p-8 border border-white/10 hover:border-primary/30 glow-primary">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Opzione 3: Mint Professional</h2>
+                    <p class="text-gray-400 mt-1">Moderno e fresco - Tecnologia innovativa</p>
+                </div>
+                <div class="px-6 py-3 bg-primary text-black font-bold rounded-xl">
+                    #14B8A6
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <!-- Button -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Primary Button</p>
+                    <button class="w-full bg-primary text-black font-bold py-3 px-4 rounded-xl shadow-primary hover:scale-105 transition-all">
+                        Sign In →
+                    </button>
+                </div>
+                
+                <!-- Badge -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Badge / Status</p>
+                    <div class="bg-white/5 rounded-xl p-4 border border-white/10 flex items-center justify-center">
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-xs font-bold color-primary border border-primary/20">
+                            ● Active
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Text -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Text & Values</p>
+                    <div class="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <p class="color-primary font-bold text-lg">$125,840.00</p>
+                        <p class="color-primary text-xs mt-1">+$5,240 (+4.2%)</p>
+                    </div>
+                </div>
+                
+                <!-- Card Border -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Active Card</p>
+                    <div class="bg-white/5 rounded-xl p-4 border border-primary glow-primary">
+                        <p class="text-xs text-gray-400">Context</p>
+                        <p class="color-primary font-bold mt-1">Selected</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pt-4 border-t border-white/10 text-sm text-gray-400">
+                <strong class="color-primary">Mood:</strong> Innovazione • Freschezza • Tech
+            </div>
+        </div>
+
+        <!-- Option 4: Forest Elite -->
+        <div class="forest-elite option-card bg-[#1E1E1E] rounded-3xl p-8 border border-white/10 hover:border-primary/30 glow-primary">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Opzione 4: Forest Elite</h2>
+                    <p class="text-gray-400 mt-1">Classico e autorevole - Tradizione solida</p>
+                </div>
+                <div class="px-6 py-3 bg-primary text-white font-bold rounded-xl">
+                    #16A34A
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <!-- Button -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Primary Button</p>
+                    <button class="w-full bg-primary text-white font-bold py-3 px-4 rounded-xl shadow-primary hover:scale-105 transition-all">
+                        Sign In →
+                    </button>
+                </div>
+                
+                <!-- Badge -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Badge / Status</p>
+                    <div class="bg-white/5 rounded-xl p-4 border border-white/10 flex items-center justify-center">
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-xs font-bold color-primary border border-primary/20">
+                            ● Active
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Text -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Text & Values</p>
+                    <div class="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <p class="color-primary font-bold text-lg">$125,840.00</p>
+                        <p class="color-primary text-xs mt-1">+$5,240 (+4.2%)</p>
+                    </div>
+                </div>
+                
+                <!-- Card Border -->
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-500 uppercase font-semibold">Active Card</p>
+                    <div class="bg-white/5 rounded-xl p-4 border border-primary glow-primary">
+                        <p class="text-xs text-gray-400">Context</p>
+                        <p class="color-primary font-bold mt-1">Selected</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pt-4 border-t border-white/10 text-sm text-gray-400">
+                <strong class="color-primary">Mood:</strong> Autorevolezza • Tradizione • Solidità
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer Note -->
+    <div class="max-w-7xl mx-auto mt-12 text-center">
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <p class="text-gray-400 text-sm">
+                💡 <strong class="text-white">Suggerimento:</strong> L'opzione <strong class="text-emerald-500">Emerald Finance (#10B981)</strong> 
+                offre il miglior equilibrio tra professionalità e modernità, perfetta per un'app premium di trading finanziario.
+            </p>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto mt-8 text-center pb-8">
+        <p class="text-gray-600 text-xs">© 2025 AlphaArena - Color Palette Preview Tool</p>
+    </div>
+
+</body>
+</html>
