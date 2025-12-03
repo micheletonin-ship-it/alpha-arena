@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Theme, User, Championship, LeaderboardEntry, Stock } from '../types';
 import * as db from '../services/database';
-import { Shield, Trophy, Users, DollarSign, TrendingUp, BarChart3, AlertCircle, Search, Filter, Play, Pause, Trash2, Eye, Download, Calendar, X, CheckCircle, Clock } from 'lucide-react';
+import * as adminService from '../services/adminService';
+import { Shield, Trophy, Users, DollarSign, TrendingUp, BarChart3, AlertCircle, Search, Filter, Play, Pause, Trash2, Eye, Download, Calendar, X, CheckCircle, Clock, UserX, UserCheck, Ban } from 'lucide-react';
 
 interface AdminPanelProps {
   theme: Theme;
@@ -21,6 +22,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, currentUser, mark
   const [selectedChampForLeaderboard, setSelectedChampForLeaderboard] = useState<Championship | null>(null);
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
+  
+  // User Management State
+  const [users, setUsers] = useState<adminService.AdminUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [stats, setStats] = useState({
     totalChampionships: 0,
     activeChampionships: 0,
@@ -208,6 +213,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, currentUser, mark
             </div>
           </div>
 
+          {/* User Management */}
+          <UserManager
+            theme={theme}
+            users={users}
+            usersLoading={usersLoading}
+            onLoadUsers={loadUsers}
+            onDisableUser={handleDisableUser}
+            onEnableUser={handleEnableUser}
+            onDeleteUser={handleDeleteUser}
+          />
+
           {/* Championships Manager */}
           <ChampionshipsManager
             championships={championships}
@@ -307,6 +323,75 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, currentUser, mark
     } catch (error) {
       console.error('Failed to export CSV:', error);
       alert('Errore durante l\'export CSV');
+    }
+  }
+
+  // User Management Functions
+  async function loadUsers() {
+    setUsersLoading(true);
+    try {
+      const result = await adminService.getAllUsers();
+      if (result.success && result.users) {
+        setUsers(result.users);
+      } else {
+        alert(`Errore: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to load users:', error);
+      alert('Errore durante il caricamento degli utenti');
+    } finally {
+      setUsersLoading(false);
+    }
+  }
+
+  async function handleDisableUser(userId: string) {
+    if (!confirm('Sei sicuro di voler disabilitare questo utente?')) return;
+    
+    try {
+      const result = await adminService.disableUser(userId);
+      if (result.success) {
+        alert('Utente disabilitato con successo');
+        await loadUsers();
+      } else {
+        alert(`Errore: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to disable user:', error);
+      alert('Errore durante la disabilitazione dell\'utente');
+    }
+  }
+
+  async function handleEnableUser(userId: string) {
+    if (!confirm('Sei sicuro di voler riabilitare questo utente?')) return;
+    
+    try {
+      const result = await adminService.enableUser(userId);
+      if (result.success) {
+        alert('Utente riabilitato con successo');
+        await loadUsers();
+      } else {
+        alert(`Errore: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to enable user:', error);
+      alert('Errore durante la riabilitazione dell\'utente');
+    }
+  }
+
+  async function handleDeleteUser(userId: string) {
+    if (!confirm('Sei sicuro di voler ELIMINARE DEFINITIVAMENTE questo utente? Questa azione è irreversibile.')) return;
+    
+    try {
+      const result = await adminService.deleteUser(userId);
+      if (result.success) {
+        alert('Utente eliminato con successo');
+        await loadUsers();
+      } else {
+        alert(`Errore: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      alert('Errore durante l\'eliminazione dell\'utente');
     }
   }
 
@@ -604,6 +689,174 @@ const ChampionshipsManager: React.FC<ChampionshipsManagerProps> = ({
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// User Manager Component
+interface UserManagerProps {
+  theme: Theme;
+  users: adminService.AdminUser[];
+  usersLoading: boolean;
+  onLoadUsers: () => void;
+  onDisableUser: (userId: string) => void;
+  onEnableUser: (userId: string) => void;
+  onDeleteUser: (userId: string) => void;
+}
+
+const UserManager: React.FC<UserManagerProps> = ({
+  theme,
+  users,
+  usersLoading,
+  onLoadUsers,
+  onDisableUser,
+  onEnableUser,
+  onDeleteUser,
+}) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'banned'>('all');
+
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           user.email.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || 
+                           (statusFilter === 'banned' && user.banned) ||
+                           (statusFilter === 'active' && !user.banned);
+      return matchesSearch && matchesStatus;
+    });
+  }, [users, searchQuery, statusFilter]);
+
+  return (
+    <div className={`rounded-2xl border p-6 ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'}`}>
+      <div className="flex items-center justify-between mb-6">
+        <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          Gestione Ut enti
+        </h3>
+        <button
+          onClick={onLoadUsers}
+          disabled={usersLoading}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${theme === 'dark' ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-900'} disabled:opacity-50`}
+        >
+          {usersLoading ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"/> : <Users size={14}/>}
+          {usersLoading ? 'Caricamento...' : 'Carica Utenti'}
+        </button>
+      </div>
+
+      {users.length > 0 && (
+        <>
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className={`flex items-center gap-2 flex-1 rounded-xl p-2 border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'}`}>
+              <Search size={16} className="text-gray-400"/>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cerca per nome o email..."
+                className="bg-transparent text-sm outline-none flex-1 text-inherit"
+              />
+            </div>
+            <div className="flex gap-2">
+              {(['all', 'active', 'banned'] as const).map(status => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                    statusFilter === status
+                      ? (theme === 'dark' ? 'bg-neonGreen/20 text-neonGreen' : 'bg-black text-white')
+                      : (theme === 'dark' ? 'bg-white/10 hover:bg-white/20 text-gray-400' : 'bg-gray-100 hover:bg-gray-200 text-gray-600')
+                  }`}
+                >
+                  {status === 'all' ? 'Tutti' : status === 'active' ? 'Attivi' : 'Bannati'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {filteredUsers.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <Users size={48} className="mx-auto mb-4 opacity-20"/>
+              <p>Nessun utente trovato</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className={`border-b ${theme === 'dark' ? 'border-white/5 text-gray-400' : 'border-gray-200 text-gray-600'}`}>
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium">Utente</th>
+                    <th className="px-4 py-3 text-left font-medium">Stato</th>
+                    <th className="px-4 py-3 text-left font-medium">Registrato</th>
+                    <th className="px-4 py-3 text-center font-medium">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody className={`divide-y ${theme === 'dark' ? 'divide-white/5' : 'divide-gray-100'}`}>
+                  {filteredUsers.map(user => (
+                    <tr key={user.id} className={`transition-colors ${theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-50'}`}>
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                            {user.name} {user.is_admin && <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full ml-2">Admin</span>}
+                          </p>
+                          <p className="text-xs text-gray-500">{user.email}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {user.banned ? (
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold bg-red-500/20 text-red-400">
+                            <Ban size={10}/> Bannato
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold bg-green-500/20 text-neonGreen">
+                            <CheckCircle size={10}/> Attivo
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-1">
+                          {user.banned ? (
+                            <button
+                              onClick={() => onEnableUser(user.id)}
+                              className={`p-1.5 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/10 text-green-400' : 'hover:bg-gray-100 text-green-600'}`}
+                              title="Riabilita Utente"
+                            >
+                              <UserCheck size={16}/>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => onDisableUser(user.id)}
+                              className={`p-1.5 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/10 text-orange-400' : 'hover:bg-gray-100 text-orange-600'}`}
+                              title="Disabilita Utente"
+                            >
+                              <UserX size={16}/>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => onDeleteUser(user.id)}
+                            className={`p-1.5 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/10 text-red-400' : 'hover:bg-gray-100 text-red-600'}`}
+                            title="Elimina Utente"
+                          >
+                            <Trash2 size={16}/>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
+      {users.length === 0 && !usersLoading && (
+        <div className="text-center py-12 text-gray-500">
+          <Users size={48} className="mx-auto mb-4 opacity-20"/>
+          <p>Clicca "Carica Utenti" per visualizzare tutti gli utenti registrati</p>
         </div>
       )}
     </div>

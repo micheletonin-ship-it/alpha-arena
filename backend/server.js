@@ -2,8 +2,27 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const Stripe = require('stripe');
+const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 const { savePayment, joinChampionship, getChampionshipById } = require('./database');
+
+// Initialize Supabase Admin Client (with Service Role Key for admin operations)
+let supabaseAdmin = null;
+if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
+  supabaseAdmin = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_KEY,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
+  console.log('✅ Supabase Admin client initialized');
+} else {
+  console.warn('⚠️  Supabase Admin credentials not found. User management endpoints will not work.');
+}
 
 // Stock names mapping
 const STOCK_NAMES = {
@@ -503,6 +522,284 @@ app.post('/api/webhook', async (req, res) => {
 
   // Return a 200 response to acknowledge receipt of the event
   res.json({ received: true });
+});
+
+// ===== ADMIN USER MANAGEMENT ENDPOINTS =====
+
+/**
+ * Get All Users (Admin only)
+ * Returns list of all users with their profiles
+ */
+app.get('/api/admin/users', async (req, res) => {
+  if (!supabaseAdmin) {
+    return res.status(500).json({ 
+      success: false,
+      error: 'Supabase Admin not initialized. Configure SUPABASE_SERVICE_KEY.' 
+    });
+  }
+
+  try {
+    console.log('[Admin] Fetching all users...');
+
+    // Get all auth users
+    const { data: { users }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+    
+    if (authError) {
+      console.error('[Admin] Error fetching users:', authError.message);
+      return res.status(500).json({ 
+        success: false,
+        error: authError.message 
+      });
+    }
+
+    console.log(`[Admin] Found ${users.length} auth users`);
+
+    // Enrich with user_profiles data
+    const enrichedUsers = await Promise.all(users.map(async (user) => {
+      try {
+        const { data: profile } = await supabaseAdmin
+          .from('user_profiles')
+          .select('name, is_admin')
+          .eq('email', user.email)
+          .single();
+        
+        return {
+          id: user.id,
+          email: user.email,
+          name: profile?.name || 'N/A',
+          is_admin: profile?.is_admin || false,
+          created_at: user.created_at,
+          last_sign_in_at: user.last_sign_in_at,
+          email_confirmed_at: user.email_confirmed_at,
+          banned: user.banned_until ? true : false,
+          banned_until: user.banned_until || null
+        };
+      } catch (err) {
+        console.error(`[Admin] Error enriching user ${user.email}:`, err.message);
+        return {
+          id: user.id,
+          email: user.email,
+          name: 'N/A',
+          is_admin: false,
+          created_at: user.created_at,
+          last_sign_in_at: user.last_sign_in_at,
+          email_confirmed_at: user.email_confirmed_at,
+          banned: user.banned_until ? true : false,
+          banned_until: user.banned_until || null
+        };
+      }
+    }));
+
+    console.log(`[Admin] Returning ${enrichedUsers.length} enriched users`);
+    
+    res.json({ 
+      success: true,
+      users: enrichedUsers 
+    });
+
+  } catch (error) {
+    console.error('[Admin] Get users error:', error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch users',
+      message: error.message 
+    });
+  }
+});
+
+/**
+ * Disable/Ban User (Admin only)
+ * Bans a user for a very long time (effectively permanent)
+ */
+app.post('/api/admin/users/:id/disable', async (req, res) => {
+  if (!supabaseAdmin) {
+    return res.status(500).json({ 
+      success: false,
+      error: 'Supabase Admin not initialized' 
+    });
+  }
+
+  try {
+    const { id } = req.params;
+    console.log(`[Admin] Disabling user: ${id}`);
+
+    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
+      id,
+      { ban_duration: '876000h' } // ~100 years = permanent ban
+    );
+    
+    if (error) {
+      console.error('[Admin] Error disabling user:', error.message);
+      return res.status(500).json({ 
+        success: false,
+        error: error.message 
+      });
+    }
+
+    console.log(`[Admin] User ${id} disabled successfully`);
+    
+    res.json({ 
+      success: true,
+      message: 'User disabled successfully',
+      user: {
+        id: data.user.id,
+        email: data.user.email,
+        banned: true
+      }
+    });
+
+  } catch (error) {
+    console.error('[Admin] Disable user error:', error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to disable user',
+      message: error.message 
+    });
+  }
+});
+
+/**
+ * Enable/Unban User (Admin only)
+ * Removes ban from a user
+ */
+app.post('/api/admin/users/:id/enable', async (req, res) => {
+  if (!supabaseAdmin) {
+    return res.status(500).json({ 
+      success: false,
+      error: 'Supabase Admin not initialized' 
+    });
+  }
+
+  try {
+    const { id } = req.params;
+    console.log(`[Admin] Enabling user: ${id}`);
+
+    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
+      id,
+      { ban_duration: 'none' }
+    );
+    
+    if (error) {
+      console.error('[Admin] Error enabling user:', error.message);
+      return res.status(500).json({ 
+        success: false,
+        error: error.message 
+      });
+    }
+
+    console.log(`[Admin] User ${id} enabled successfully`);
+    
+    res.json({ 
+      success: true,
+      message: 'User enabled successfully',
+      user: {
+        id: data.user.id,
+        email: data.user.email,
+        banned: false
+      }
+    });
+
+  } catch (error) {
+    console.error('[Admin] Enable user error:', error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to enable user',
+      message: error.message 
+    });
+  }
+});
+
+/**
+ * Delete User (Admin only)
+ * Permanently deletes a user and all associated data
+ */
+app.delete('/api/admin/users/:id', async (req, res) => {
+  if (!supabaseAdmin) {
+    return res.status(500).json({ 
+      success: false,
+      error: 'Supabase Admin not initialized' 
+    });
+  }
+
+  try {
+    const { id } = req.params;
+    console.log(`[Admin] Deleting user: ${id}`);
+
+    // First get user email for cascade deletion
+    const { data: user, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(id);
+    
+    if (getUserError) {
+      console.error('[Admin] Error getting user:', getUserError.message);
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found' 
+      });
+    }
+
+    const userEmail = user.user.email;
+    console.log(`[Admin] User email: ${userEmail}`);
+
+    // Delete associated data from database (cascade)
+    try {
+      // Delete user profile
+      await supabaseAdmin
+        .from('user_profiles')
+        .delete()
+        .eq('email', userEmail);
+      console.log(`[Admin] Deleted user_profile for ${userEmail}`);
+
+      // Delete transactions
+      await supabaseAdmin
+        .from('transactions')
+        .delete()
+        .eq('user_email', userEmail);
+      console.log(`[Admin] Deleted transactions for ${userEmail}`);
+
+      // Delete holdings
+      await supabaseAdmin
+        .from('holdings')
+        .delete()
+        .eq('user_email', userEmail);
+      console.log(`[Admin] Deleted holdings for ${userEmail}`);
+
+      // Delete championship participations
+      await supabaseAdmin
+        .from('championship_participation')
+        .delete()
+        .eq('user_email', userEmail);
+      console.log(`[Admin] Deleted championship_participation for ${userEmail}`);
+
+    } catch (dbError) {
+      console.error('[Admin] Error deleting user data:', dbError.message);
+      // Continue with auth deletion even if DB cleanup fails
+    }
+
+    // Finally delete the auth user
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(id);
+    
+    if (deleteError) {
+      console.error('[Admin] Error deleting auth user:', deleteError.message);
+      return res.status(500).json({ 
+        success: false,
+        error: deleteError.message 
+      });
+    }
+
+    console.log(`[Admin] User ${id} (${userEmail}) deleted successfully`);
+    
+    res.json({ 
+      success: true,
+      message: 'User deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('[Admin] Delete user error:', error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to delete user',
+      message: error.message 
+    });
+  }
 });
 
 // Start server
