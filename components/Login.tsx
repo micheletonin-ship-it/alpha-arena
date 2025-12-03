@@ -14,6 +14,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -40,7 +41,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
         }
       } else {
         // Sign up
-        const displayName = email.split('@')[0];
+        const displayName = name || email.split('@')[0];
         const finalName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
         
         const result = await signUpWithEmail(email, password, finalName);
@@ -235,6 +236,23 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
            </div>
 
            <form onSubmit={handleSubmit} className="space-y-4">
+              {!isLogin && (
+                <div>
+                   <label className={`mb-1.5 block text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Full Name</label>
+                   <div className={`flex items-center rounded-xl border px-4 py-3 transition-colors focus-within:border-neonGreen ${theme === 'dark' ? 'border-white/10 bg-white/5' : 'border-gray-200 bg-gray-50'}`}>
+                      <UserIcon size={20} className="text-gray-400" />
+                      <input 
+                        type="text" 
+                        required={!isLogin}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="John Doe"
+                        className={`ml-3 w-full bg-transparent text-sm outline-none ${theme === 'dark' ? 'text-white placeholder:text-gray-600' : 'text-gray-900 placeholder:text-gray-400'}`}
+                      />
+                   </div>
+                </div>
+              )}
+
               <div>
                  <label className={`mb-1.5 block text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Email Address</label>
                  <div className={`flex items-center rounded-xl border px-4 py-3 transition-colors focus-within:border-neonGreen ${theme === 'dark' ? 'border-white/10 bg-white/5' : 'border-gray-200 bg-gray-50'}`}>
