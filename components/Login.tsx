@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Theme } from '../types';
 import { Mail, Lock, ArrowRight, User as UserIcon, AlertCircle, CheckCircle, TrendingUp, Trophy, Bot, Sparkles, MessageSquare } from 'lucide-react';
-import { signUpWithEmail, signInWithEmail, resendConfirmationEmail } from '../services/cloud';
+import { signUpWithEmail, signInWithEmail, resendConfirmationEmail, requestPasswordReset } from '../services/cloud';
 
 interface LoginProps {
   onLogin: (email: string, name: string) => void;
@@ -20,6 +20,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [isDuplicateEmail, setIsDuplicateEmail] = useState(false);
+  const [errorType, setErrorType] = useState<string | null>(null);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +40,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
           onLogin(email, finalName);
         } else {
           setError(result.message || 'Login fallito');
+          setErrorType((result as any).errorType || null);
         }
       } else {
         // Sign up
@@ -76,6 +79,27 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
       setSuccessMessage(result.message || 'Email inviata!');
     } else {
       setError(result.message || 'Errore invio email');
+    }
+    
+    setLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Inserisci la tua email per reimpostare la password');
+      return;
+    }
+    
+    setError(null);
+    setSuccessMessage(null);
+    setLoading(true);
+    
+    const result = await requestPasswordReset(email);
+    if (result.success) {
+      setSuccessMessage(result.message);
+      setShowForgotPassword(false);
+    } else {
+      setError(result.message);
     }
     
     setLoading(false);
@@ -283,13 +307,22 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
                  </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                 <label className="flex items-center gap-2">
+              {isLogin && (
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2">
                     <input type="checkbox" className="rounded border-gray-300 text-neonGreen focus:ring-neonGreen" />
                     <span className="text-xs text-gray-500">Remember me</span>
-                 </label>
-                 <button type="button" className="text-xs font-medium text-neonGreen hover:underline">Forgot password?</button>
-              </div>
+                  </label>
+                  <button 
+                    type="button" 
+                    onClick={handleForgotPassword}
+                    disabled={isFormLoading}
+                    className="text-xs font-medium text-neonGreen hover:underline disabled:opacity-50"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
 
               {/* Error/Success Messages */}
               {error && (
@@ -298,6 +331,30 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
                     <AlertCircle size={16} />
                     <span>{error}</span>
                   </div>
+                  
+                  {/* Contextual help based on error type */}
+                  {errorType === 'email_not_confirmed' && email && (
+                    <button
+                      type="button"
+                      onClick={handleResendConfirmation}
+                      disabled={isFormLoading}
+                      className="w-full text-center text-xs text-neonGreen hover:underline font-semibold disabled:opacity-50"
+                    >
+                      📧 Invia di nuovo email di conferma
+                    </button>
+                  )}
+                  
+                  {errorType === 'invalid_credentials' && isLogin && (
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      disabled={isFormLoading}
+                      className="w-full text-center text-xs text-neonGreen hover:underline font-semibold disabled:opacity-50"
+                    >
+                      🔑 Reimposta la password
+                    </button>
+                  )}
+                  
                   {isDuplicateEmail && (
                     <button
                       type="button"

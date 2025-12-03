@@ -130,12 +130,65 @@ const signInWithEmail = async (email: string, password: string) => {
         });
         
         if (error) {
-            return { success: false, message: error.message };
+            // Enhanced error messages in Italian
+            const errorLower = error.message.toLowerCase();
+            
+            // Email not confirmed
+            if (errorLower.includes('email not confirmed') || 
+                errorLower.includes('email non confermata')) {
+                return { 
+                    success: false, 
+                    message: "Email non confermata. Controlla la tua casella di posta e clicca sul link di conferma.",
+                    errorType: 'email_not_confirmed'
+                };
+            }
+            
+            // Invalid credentials
+            if (errorLower.includes('invalid login credentials') || 
+                errorLower.includes('invalid') ||
+                errorLower.includes('credentials')) {
+                return { 
+                    success: false, 
+                    message: "Email o password errati. Verifica le credenziali e riprova.",
+                    errorType: 'invalid_credentials'
+                };
+            }
+            
+            // Account disabled/banned
+            if (errorLower.includes('disabled') || 
+                errorLower.includes('banned') ||
+                errorLower.includes('suspended')) {
+                return { 
+                    success: false, 
+                    message: "Account disabilitato. Contatta il supporto per maggiori informazioni.",
+                    errorType: 'account_disabled'
+                };
+            }
+            
+            // Rate limiting
+            if (errorLower.includes('rate limit') || errorLower.includes('too many')) {
+                return { 
+                    success: false, 
+                    message: "Troppi tentativi. Riprova tra qualche minuto.",
+                    errorType: 'rate_limit'
+                };
+            }
+            
+            // Generic error
+            return { 
+                success: false, 
+                message: error.message,
+                errorType: 'unknown'
+            };
         }
         
         return { success: true, user: data.user, session: data.session };
     } catch (e: any) {
-        return { success: false, message: getSupabaseErrorMessage(e) };
+        return { 
+            success: false, 
+            message: getSupabaseErrorMessage(e),
+            errorType: 'exception'
+        };
     }
 };
 
@@ -214,6 +267,51 @@ const resendConfirmationEmail = async (email: string) => {
         }
         
         return { success: true, message: "Email di conferma inviata!" };
+    } catch (e: any) {
+        return { success: false, message: getSupabaseErrorMessage(e) };
+    }
+};
+
+/**
+ * Request password reset email
+ */
+const requestPasswordReset = async (email: string) => {
+    if (!supabase) return { success: false, message: "Supabase not initialized" };
+    
+    try {
+        const { error } = await supabase!.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/reset-password`,
+        });
+        
+        if (error) {
+            return { success: false, message: error.message };
+        }
+        
+        return { 
+            success: true, 
+            message: "Email inviata! Controlla la tua casella di posta per reimpostare la password." 
+        };
+    } catch (e: any) {
+        return { success: false, message: getSupabaseErrorMessage(e) };
+    }
+};
+
+/**
+ * Update user password (after receiving reset link)
+ */
+const updatePassword = async (newPassword: string) => {
+    if (!supabase) return { success: false, message: "Supabase not initialized" };
+    
+    try {
+        const { error } = await supabase!.auth.updateUser({
+            password: newPassword
+        });
+        
+        if (error) {
+            return { success: false, message: error.message };
+        }
+        
+        return { success: true, message: "Password aggiornata con successo!" };
     } catch (e: any) {
         return { success: false, message: getSupabaseErrorMessage(e) };
     }
@@ -320,6 +418,8 @@ export {
     getCurrentUser,
     onAuthStateChange,
     resendConfirmationEmail,
+    requestPasswordReset,
+    updatePassword,
     checkConnection,
     syncKeysToCloud,
     syncKeysFromCloud
