@@ -9,6 +9,7 @@ import { AgentMonitor } from './components/AgentMonitor';
 import { Scanner } from './Scanner'; 
 import { ChatBot } from './components/ChatBot';
 import { Login } from './components/Login';
+import { Welcome } from './components/Welcome';
 import { TradeModal } from './components/TradeModal';
 import { Activity } from './components/Activity';
 import { Statistics } from './components/Statistics';
@@ -83,6 +84,7 @@ const AppContent: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   
   // Championship State
   const [currentChampionshipId, setCurrentChampionshipId] = useState<string | undefined>(undefined); // UPDATED: undefined if no championship
@@ -934,6 +936,33 @@ const AppContent: React.FC = () => {
       setActiveTab('settings');
   };
 
+  // NEW: Handler for Welcome Page - Join Free Championship
+  const handleJoinFreeChampionship = async () => {
+    if (!currentUser) return;
+    
+    try {
+      // Get or create the permanent Welcome Cup
+      const welcomeCup = await db.getOrCreateWelcomeCup();
+      
+      // Set it as the user's active championship
+      await handleSetChampionshipContext(welcomeCup);
+      
+      // Hide welcome page and show portfolio
+      setShowWelcome(false);
+      setActiveTab('portfolio');
+      
+    } catch (error) {
+      console.error("Error joining Welcome Cup:", error);
+      alert("Errore durante l'iscrizione al campionato gratuito. Riprova.");
+    }
+  };
+
+  // NEW: Handler for Welcome Page - Go to Dashboard
+  const handleGoToDashboard = () => {
+    setShowWelcome(false);
+    setActiveTab('portfolio');
+  };
+
   // NEW: Handler to set championship context
   // UPDATED: Now accepts Championship or undefined (to clear context)
   const handleSetChampionshipContext = async (champ: Championship | null) => {
@@ -966,6 +995,28 @@ const AppContent: React.FC = () => {
     }
   };
 
+  // Check if we should show the Welcome Page
+  useEffect(() => {
+    // Check URL parameters for email confirmation
+    const urlParams = new URLSearchParams(window.location.search);
+    const type = urlParams.get('type');
+    const emailConfirmed = urlParams.get('email_confirmed');
+    
+    // If user just confirmed email via Supabase link, show welcome page
+    if (currentUser && type === 'signup' && !currentChampionshipId) {
+      setShowWelcome(true);
+      // Clean up URL parameters
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    
+    // Also check sessionStorage for welcome flag (set by email confirmation)
+    const showWelcomeFlag = sessionStorage.getItem('show_welcome');
+    if (currentUser && showWelcomeFlag === 'true' && !currentChampionshipId) {
+      setShowWelcome(true);
+      sessionStorage.removeItem('show_welcome');
+    }
+  }, [currentUser, currentChampionshipId]);
+
   if (!currentUser) {
     // Don't render Login during logout transition to prevent React reconciliation errors
     if (isLoggingOut) {
@@ -976,6 +1027,18 @@ const AppContent: React.FC = () => {
       );
     }
     return <Login onLogin={handleLogin} theme={theme} isLoading={isLoadingAuth} />;
+  }
+
+  // Show Welcome Page if flag is set
+  if (showWelcome && !currentChampionshipId) {
+    return (
+      <Welcome
+        theme={theme}
+        user={currentUser}
+        onJoinFreeChampionship={handleJoinFreeChampionship}
+        onGoToDashboard={handleGoToDashboard}
+      />
+    );
   }
 
   // UPDATED: Render specific tabs only if a championship is active, or if on 'championships' tab

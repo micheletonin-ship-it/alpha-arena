@@ -1362,6 +1362,120 @@ export const distributePrizes = async (championshipId: string, leaderboard: Lead
     }
 };
 
+// --- WELCOME CUP (Free Championship) ---
+
+/**
+ * Get or create the permanent "Welcome Cup" free championship
+ * This championship is always available for new users
+ */
+export const getOrCreateWelcomeCup = async (): Promise<Championship> => {
+    const WELCOME_CUP_ID = 'welcome-cup-permanent';
+    const supabase = getSupabase();
+    
+    if (supabase) {
+        try {
+            // Try to get existing Welcome Cup
+            const { data: existing, error: fetchError } = await supabase
+                .from('championships')
+                .select('*')
+                .eq('id', WELCOME_CUP_ID)
+                .single();
+            
+            if (existing && !fetchError) {
+                return {
+                    id: existing.id,
+                    name: existing.name,
+                    description: existing.description,
+                    start_date: existing.start_date,
+                    end_date: existing.end_date,
+                    starting_cash: parseFloat(existing.starting_cash),
+                    enrollment_fee: parseFloat(existing.enrollment_fee || 0),
+                    ticker_restriction_enabled: existing.ticker_restriction_enabled,
+                    allowed_tickers: existing.allowed_tickers,
+                    status: existing.status,
+                    admin_user_id: existing.admin_user_id,
+                    created_at: existing.created_at,
+                };
+            }
+            
+            // Create new Welcome Cup if doesn't exist
+            const now = new Date();
+            const endDate = new Date(now.getFullYear() + 1, 11, 31); // End of next year
+            
+            const { data: created, error: createError } = await supabase
+                .from('championships')
+                .insert({
+                    id: WELCOME_CUP_ID,
+                    name: '🎁 Welcome Cup - Gratuito',
+                    description: 'Campionato gratuito sempre disponibile per tutti gli utenti. Perfetto per iniziare!',
+                    start_date: now.toISOString(),
+                    end_date: endDate.toISOString(),
+                    starting_cash: 100000,
+                    enrollment_fee: 0,
+                    ticker_restriction_enabled: false,
+                    status: 'active',
+                    admin_user_id: 'system@alphaarena.com',
+                })
+                .select()
+                .single();
+            
+            if (createError) {
+                console.error("Error creating Welcome Cup:", getSupabaseErrorMessage(createError));
+                throw new Error(`Failed to create Welcome Cup: ${getSupabaseErrorMessage(createError)}`);
+            }
+            
+            return {
+                id: created.id,
+                name: created.name,
+                description: created.description,
+                start_date: created.start_date,
+                end_date: created.end_date,
+                starting_cash: parseFloat(created.starting_cash),
+                enrollment_fee: parseFloat(created.enrollment_fee || 0),
+                ticker_restriction_enabled: created.ticker_restriction_enabled,
+                allowed_tickers: created.allowed_tickers,
+                status: created.status,
+                admin_user_id: created.admin_user_id,
+                created_at: created.created_at,
+            };
+            
+        } catch (e: any) {
+            console.error("Error in getOrCreateWelcomeCup:", getSupabaseErrorMessage(e));
+            throw e;
+        }
+    } else {
+        // Local fallback
+        await sleep(DELAY_MS);
+        const allChampionships: Championship[] = JSON.parse(localStorage.getItem(`${DB_PREFIX}championships`) || '[]');
+        
+        let welcomeCup = allChampionships.find(c => c.id === WELCOME_CUP_ID);
+        
+        if (!welcomeCup) {
+            const now = new Date();
+            const endDate = new Date(now.getFullYear() + 1, 11, 31);
+            
+            welcomeCup = {
+                id: WELCOME_CUP_ID,
+                name: '🎁 Welcome Cup - Gratuito',
+                description: 'Campionato gratuito sempre disponibile per tutti gli utenti. Perfetto per iniziare!',
+                start_date: now.toISOString(),
+                end_date: endDate.toISOString(),
+                starting_cash: 100000,
+                enrollment_fee: 0,
+                ticker_restriction_enabled: false,
+                status: 'active',
+                admin_user_id: 'system@alphaarena.com',
+                created_at: now.toISOString(),
+            };
+            
+            allChampionships.push(welcomeCup);
+            localStorage.setItem(`${DB_PREFIX}championships`, JSON.stringify(allChampionships));
+        }
+        
+        return welcomeCup;
+    }
+};
+
 // --- GLOBAL STATISTICS ---
 
 export const getGlobalStats = async (): Promise<{ volume: number; traders: number; championships: number }> => {
