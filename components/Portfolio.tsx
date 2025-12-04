@@ -147,9 +147,9 @@ export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holding
                   ${portfolioStats.totalNetWorth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h2>
                 <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                    <span className="flex items-center gap-1"><DollarSign size={10}/> Cash: <span className="font-semibold text-gray-900 dark:text-white">${userBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></span>
+                    <span className="flex items-center gap-1"><DollarSign size={10}/> Cash: <span className="font-semibold text-gray-900 dark:text-white">${userBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></span>
                     <span className="h-3 w-px bg-gray-300 dark:bg-white/20"></span>
-                    <span className="flex items-center gap-1"><PieChart size={10}/> Assets: <span className="font-semibold text-gray-900 dark:text-white">${portfolioStats.totalAssetValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></span>
+                    <span className="flex items-center gap-1"><PieChart size={10}/> Assets: <span className="font-semibold text-gray-900 dark:text-white">${portfolioStats.totalAssetValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></span>
                 </div>
               </div>
               <div className={`rounded-full p-3 ${theme === 'dark' ? 'bg-white/5 text-neonGreen' : 'bg-white text-green-600 shadow-sm'}`}>
