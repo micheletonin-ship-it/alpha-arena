@@ -460,7 +460,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
       {/* Footer */}
       <div className="mt-8 text-center px-4 pb-6">
         <p className={`text-xs ${theme === 'dark' ? 'text-gray-600' : 'text-gray-500'}`}>
-          © 2025 Alpha Arena · Trading Championships & AI Insights
+          © 2025 Alpha Arena · Trading Championships
         </p>
         <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-gray-700' : 'text-gray-600'}`}>
           Created by Michele Tonin
