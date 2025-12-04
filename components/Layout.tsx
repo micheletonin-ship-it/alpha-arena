@@ -157,9 +157,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, toggleTheme, ac
                     <span className="mr-2 text-neonGreen">●</span>
                     Market Status: <span className={theme === 'dark' ? 'text-white' : 'text-black'}>Open</span>
                   </div>
-                  <div className={`h-10 w-10 rounded-full shadow-md`}>
+                  <button 
+                    onClick={() => handleNavClick('settings')}
+                    className={`h-10 w-10 rounded-full shadow-md hover:ring-2 hover:ring-neonGreen transition-all cursor-pointer hover:scale-105 active:scale-95`}
+                    title="Open Settings"
+                  >
                     {renderAvatar()}
-                  </div>
+                  </button>
               </div>
            </div>
         </header>
