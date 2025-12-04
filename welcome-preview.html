@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Alpha Arena - Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideInUp {
+            from { 
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes zoomIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+        .animate-slide-up {
+            animation: slideInUp 0.8s ease-out;
+        }
+        .animate-zoom {
+            animation: zoomIn 0.5s ease-out;
+        }
+        .delay-100 { animation-delay: 0.1s; animation-fill-mode: both; }
+        .delay-200 { animation-delay: 0.2s; animation-fill-mode: both; }
+        .delay-300 { animation-delay: 0.3s; animation-fill-mode: both; }
+        .delay-400 { animation-delay: 0.4s; animation-fill-mode: both; }
+        .delay-500 { animation-delay: 0.5s; animation-fill-mode: both; }
+        .delay-600 { animation-delay: 0.6s; animation-fill-mode: both; }
+        .delay-700 { animation-delay: 0.7s; animation-fill-mode: both; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-black min-h-screen text-white">
+    
+    <!-- Header con Logo -->
+    <div class="container mx-auto px-4 py-6">
+        <div class="flex items-center gap-2 text-2xl font-bold">
+            <svg class="w-8 h-8 text-[#39FF14]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+            </svg>
+            <span>ALPHA<span class="text-[#39FF14]">ARENA</span></span>
+        </div>
+    </div>
+
+    <!-- Welcome Page Content -->
+    <div class="container mx-auto px-4 pb-12 max-w-4xl">
+        
+        <!-- Success Header -->
+        <div class="text-center mb-12 animate-fade-in">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-green-500 rounded-full mb-6 animate-zoom">
+                <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">
+                Benvenuto in Alpha Arena, <span class="text-[#39FF14]">Mario</span>! 🎉
+            </h1>
+            <p class="text-xl text-gray-300">
+                La tua registrazione è completata con successo
+            </p>
+        </div>
+
+        <!-- Cosa Puoi Fare Section -->
+        <div class="mb-12 animate-slide-up delay-200">
+            <h2 class="text-3xl font-bold mb-6 text-center">
+                Cosa Puoi Fare Qui
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Card 1 -->
+                <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 hover:border-[#39FF14] transition-all animate-slide-up delay-300">
+                    <div class="w-12 h-12 bg-[#39FF14] bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
+                        <span class="text-3xl">🏆</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Campionati di Trading</h3>
+                    <p class="text-gray-400">
+                        Partecipa a tornei gratuiti o a pagamento, sfida altri trader e scala la classifica
+                    </p>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 hover:border-[#39FF14] transition-all animate-slide-up delay-400">
+                    <div class="w-12 h-12 bg-[#39FF14] bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
+                        <span class="text-3xl">🤖</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">AI Trading Agent</h3>
+                    <p class="text-gray-400">
+                        Lascia che l'intelligenza artificiale operi per te seguendo la tua strategia
+                    </p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 hover:border-[#39FF14] transition-all animate-slide-up delay-500">
+                    <div class="w-12 h-12 bg-[#39FF14] bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
+                        <span class="text-3xl">✨</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">AI Suggestions</h3>
+                    <p class="text-gray-400">
+                        Ricevi consigli intelligenti basati su analisi di mercato in tempo reale
+                    </p>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 hover:border-[#39FF14] transition-all animate-slide-up delay-600">
+                    <div class="w-12 h-12 bg-[#39FF14] bg-opacity-20 rounded-lg flex items-center justify-center mb-4">
+                        <span class="text-3xl">💬</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">ChatBot Portafoglio</h3>
+                    <p class="text-gray-400">
+                        Chiedi qualsiasi cosa sul tuo portafoglio e ottieni risposte immediate
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Come Funziona Section -->
+        <div class="mb-12 animate-slide-up delay-700">
+            <h2 class="text-3xl font-bold mb-6 text-center">
+                Come Funziona
+            </h2>
+            <div class="bg-gray-800 border border-gray-700 rounded-lg p-8">
+                <ol class="space-y-4">
+                    <li class="flex gap-4">
+                        <span class="flex-shrink-0 w-8 h-8 bg-[#39FF14] text-black rounded-full flex items-center justify-center font-bold">1</span>
+                        <div>
+                            <strong class="text-lg">Scegli un Campionato</strong>
+                            <p class="text-gray-400">Inizia con il torneo gratuito o partecipa a tornei a pagamento con premi reali</p>
+                        </div>
+                    </li>
+                    <li class="flex gap-4">
+                        <span class="flex-shrink-0 w-8 h-8 bg-[#39FF14] text-black rounded-full flex items-center justify-center font-bold">2</span>
+                        <div>
+                            <strong class="text-lg">Crea la Tua Strategia</strong>
+                            <p class="text-gray-400">Definisci regole di trading o lascia che l'AI ti suggerisca le migliori mosse</p>
+                        </div>
+                    </li>
+                    <li class="flex gap-4">
+                        <span class="flex-shrink-0 w-8 h-8 bg-[#39FF14] text-black rounded-full flex items-center justify-center font-bold">3</span>
+                        <div>
+                            <strong class="text-lg">Attiva l'AI Agent</strong>
+                            <p class="text-gray-400">L'intelligenza artificiale eseguirà i trade automaticamente secondo la tua strategia</p>
+                        </div>
+                    </li>
+                    <li class="flex gap-4">
+                        <span class="flex-shrink-0 w-8 h-8 bg-[#39FF14] text-black rounded-full flex items-center justify-center font-bold">4</span>
+                        <div>
+                            <strong class="text-lg">Monitora le Performance</strong>
+                            <p class="text-gray-400">Visualizza statistiche dettagliate, grafici e confronti con altri trader</p>
+                        </div>
+                    </li>
+                    <li class="flex gap-4">
+                        <span class="flex-shrink-0 w-8 h-8 bg-[#39FF14] text-black rounded-full flex items-center justify-center font-bold">5</span>
+                        <div>
+                            <strong class="text-lg">Vinci Premi</strong>
+                            <p class="text-gray-400">I migliori trader ricevono premi in base alla classifica del campionato</p>
+                        </div>
+                    </li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- CTA Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up delay-700">
+            <button class="px-8 py-4 bg-[#39FF14] text-black font-bold rounded-lg hover:bg-[#2de60f] transition-all transform hover:scale-105 shadow-lg shadow-[#39FF14]/20">
+                🎁 Entra nel Campionato Gratuito
+            </button>
+            <button class="px-8 py-4 bg-transparent border-2 border-[#39FF14] text-[#39FF14] font-bold rounded-lg hover:bg-[#39FF14] hover:text-black transition-all">
+                📊 Vai alla Dashboard
+            </button>
+        </div>
+
+        <!-- Footer Info -->
+        <div class="mt-12 text-center text-gray-400 text-sm animate-fade-in delay-700">
+            <p>🚀 Inizia subito a fare trading con capitale virtuale di $100,000</p>
+            <p class="mt-2">📈 Prezzi di mercato reali da Alpaca Markets</p>
+        </div>
+    </div>
+
+</body>
+</html>

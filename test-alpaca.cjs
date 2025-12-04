@@ -1,8 +1,8 @@
 // Test script per verificare chiavi Alpaca
 const https = require('https');
 
-const ALPACA_KEY = 'PKXWI4DU5YPOUUDL45BSVDQFYR';
-const ALPACA_SECRET = 'BT3qjpfSEXKVJbS6tHwxpFPtoxBkBfrCKvhPZi6GpVDD';
+const ALPACA_KEY = 'PKRNPWCFLQ2UW5IQMRDCX37VXP';
+const ALPACA_SECRET = 'GsvMgASvTiAzsWiAjcp9rScgZkiPXGyYUWKma75XPPSi';
 
 const options = {
   hostname: 'data.alpaca.markets',
