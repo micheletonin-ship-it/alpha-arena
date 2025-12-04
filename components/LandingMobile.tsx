@@ -39,10 +39,11 @@ export const LandingMobile: React.FC<LandingMobileProps> = ({
           Win Bigger.
         </p>
         
-        <p className={`text-base max-w-md mx-auto ${
+        <p className={`text-lg max-w-md mx-auto ${
           theme === 'dark' ? 'text-gray-500' : 'text-gray-600'
         }`}>
-          Real prices. Virtual capital. AI-powered trading.
+          Trading championships with real prices.<br/>
+          Virtual capital. AI-powered strategies.
         </p>
       </div>
 
