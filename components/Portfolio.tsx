@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Stock, Holding, Theme } from '../types';
-import { Wallet, PieChart, ArrowUpRight, ArrowDownRight, DollarSign } from 'lucide-react';
+import { Wallet, PieChart, ArrowUpRight, ArrowDownRight, DollarSign, ExternalLink } from 'lucide-react';
 
 interface PortfolioProps {
   marketData: Stock[];
@@ -15,6 +15,18 @@ interface PortfolioProps {
 
 export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holdings, onTrade, userBalance, externalTotalEquity, championshipId }) => {
   
+  // Generate Google Finance URL
+  const getGoogleFinanceUrl = (symbol: string) => {
+    // Check if it's a crypto ticker (contains -USD)
+    if (symbol.includes('-USD')) {
+      return `https://www.google.com/finance/quote/${symbol}`;
+    }
+    // For regular stocks, determine exchange
+    const nyseStocks = ['JPM', 'BAC', 'WFC', 'GS', 'C', 'XOM', 'CVX', 'KO', 'PG', 'WMT', 'HD', 'BA', 'CAT', 'GE'];
+    const exchange = nyseStocks.includes(symbol) ? 'NYSE' : 'NASDAQ';
+    return `https://www.google.com/finance/quote/${symbol}:${exchange}`;
+  };
+
   const portfolioStats = useMemo(() => {
     let totalAssetValue = 0;
     let totalCost = 0;
@@ -142,7 +154,18 @@ export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holding
                         {holding.symbol[0]}
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-900 dark:text-white">{holding.symbol}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-900 dark:text-white">{holding.symbol}</span>
+                          <a 
+                            href={getGoogleFinanceUrl(holding.symbol)} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className={`transition-colors hover:scale-110 ${theme === 'dark' ? 'text-gray-400 hover:text-neonGreen' : 'text-gray-500 hover:text-blue-600'}`}
+                            title="View on Google Finance"
+                          >
+                            <ExternalLink size={14} />
+                          </a>
+                        </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">{holding.name}</div>
                       </div>
                     </div>
