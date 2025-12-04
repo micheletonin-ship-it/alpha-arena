@@ -1057,7 +1057,8 @@ const AppContent: React.FC = () => {
       }
       // Show Login component for both login and signup (it handles switching internally)
       // Pass fromLanding={true} to hide the mobile hero section
-      return <Login onLogin={handleLogin} theme={theme} isLoading={isLoadingAuth} fromLanding={true} />;
+      // Pass initialMode based on mobileView to open correct form
+      return <Login onLogin={handleLogin} theme={theme} isLoading={isLoadingAuth} fromLanding={true} initialMode={mobileView} />;
     }
     
     // Desktop: Show normal Login with split view

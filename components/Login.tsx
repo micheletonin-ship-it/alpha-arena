@@ -10,10 +10,11 @@ interface LoginProps {
   theme: Theme;
   isLoading?: boolean;
   fromLanding?: boolean;
+  initialMode?: 'login' | 'signup';
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externalLoading = false, fromLanding = false }) => {
-  const [isLogin, setIsLogin] = useState(true);
+export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externalLoading = false, fromLanding = false, initialMode = 'login' }) => {
+  const [isLogin, setIsLogin] = useState(initialMode === 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
