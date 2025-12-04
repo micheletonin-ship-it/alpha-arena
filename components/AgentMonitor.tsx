@@ -72,6 +72,9 @@ export const AgentMonitor: React.FC<AgentMonitorProps> = ({ theme, user, strateg
                 
                 const currentDropFromPeak = ((peakPrice - currentPrice) / peakPrice) * 100;
                 const currentGain = ((currentPrice - holding.avgPrice) / holding.avgPrice) * 100;
+                
+                // Calculate absolute performance in dollars
+                const absolutePerformance = (currentPrice - holding.avgPrice) * holding.quantity;
 
                 // Determine closest trigger
                 let activeTier = null;
@@ -88,10 +91,10 @@ export const AgentMonitor: React.FC<AgentMonitorProps> = ({ theme, user, strateg
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{holding.symbol}</h3>
-                                <p className="text-xs text-gray-500">Avg: ${holding.avgPrice.toFixed(2)} • Peak: ${peakPrice.toFixed(2)}</p>
+                                <p className="text-xs text-gray-500">Avg: ${holding.avgPrice.toFixed(2)} • Current: ${currentPrice.toFixed(2)}</p>
                             </div>
-                            <div className={`text-right font-mono ${currentGain >= 0 ? 'text-neonGreen' : 'text-red-500'}`}>
-                                <div className="text-lg font-bold">${currentPrice.toFixed(2)}</div>
+                            <div className={`text-right font-mono ${absolutePerformance >= 0 ? 'text-neonGreen' : 'text-red-500'}`}>
+                                <div className="text-lg font-bold">{absolutePerformance >= 0 ? '+' : ''}${absolutePerformance.toFixed(2)}</div>
                                 <div className="text-xs">{currentGain > 0 ? '+' : ''}{currentGain.toFixed(2)}%</div>
                             </div>
                         </div>
