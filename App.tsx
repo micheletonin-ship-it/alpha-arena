@@ -1289,14 +1289,15 @@ const AppContent: React.FC = () => {
               );
           case 'portfolio':
               return (
-                <Portfolio 
-                    marketData={stocks} 
-                    theme={theme} 
-                    holdings={holdings} 
+                <Portfolio
+                    marketData={stocks}
+                    theme={theme}
+                    holdings={holdings}
                     onTrade={handleOpenTradeModal}
-                    userBalance={buyingPower} 
+                    userBalance={buyingPower}
                     externalTotalEquity={totalEquity}
                     championshipId={currentChampionshipId} // UPDATED: now string
+                    userEmail={currentUser.email} // NEW: for Realized P/L calculation
                 />
               );
           case 'scanner':

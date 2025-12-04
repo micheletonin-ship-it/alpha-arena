@@ -1,7 +1,8 @@
 
-import React, { useMemo } from 'react';
-import { Stock, Holding, Theme } from '../types';
+import React, { useMemo, useState, useEffect } from 'react';
+import { Stock, Holding, Theme, Transaction } from '../types';
 import { Wallet, PieChart, ArrowUpRight, ArrowDownRight, DollarSign, ExternalLink } from 'lucide-react';
+import * as db from '../services/database';
 
 interface PortfolioProps {
   marketData: Stock[];
@@ -11,9 +12,57 @@ interface PortfolioProps {
   userBalance: number; // Now represents buying power directly
   externalTotalEquity?: number;
   championshipId: string; // UPDATED: now mandatory string
+  userEmail: string; // NEW: needed to fetch transactions
 }
 
-export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holdings, onTrade, userBalance, externalTotalEquity, championshipId }) => {
+export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holdings, onTrade, userBalance, externalTotalEquity, championshipId, userEmail }) => {
+  
+  const [realizedPL, setRealizedPL] = useState(0);
+
+  // Calculate Realized P/L from completed sales
+  useEffect(() => {
+    const calculateRealizedPL = async () => {
+      try {
+        const transactions = await db.getTransactions(userEmail, championshipId);
+        
+        // Group transactions by symbol to calculate avg buy price
+        const symbolData: Record<string, { totalBought: number; quantityBought: number; totalSold: number; quantitySold: number }> = {};
+        
+        transactions.forEach(tx => {
+          if (tx.symbol && tx.quantity && tx.price) {
+            if (!symbolData[tx.symbol]) {
+              symbolData[tx.symbol] = { totalBought: 0, quantityBought: 0, totalSold: 0, quantitySold: 0 };
+            }
+            
+            if (tx.type === 'buy') {
+              symbolData[tx.symbol].totalBought += tx.price * tx.quantity;
+              symbolData[tx.symbol].quantityBought += tx.quantity;
+            } else if (tx.type === 'sell') {
+              symbolData[tx.symbol].totalSold += tx.price * tx.quantity;
+              symbolData[tx.symbol].quantitySold += tx.quantity;
+            }
+          }
+        });
+        
+        // Calculate realized P/L for each symbol
+        let totalRealized = 0;
+        Object.values(symbolData).forEach(data => {
+          if (data.quantitySold > 0 && data.quantityBought > 0) {
+            const avgBuyPrice = data.totalBought / data.quantityBought;
+            const avgSellPrice = data.totalSold / data.quantitySold;
+            const realizedForSymbol = (avgSellPrice - avgBuyPrice) * data.quantitySold;
+            totalRealized += realizedForSymbol;
+          }
+        });
+        
+        setRealizedPL(totalRealized);
+      } catch (error) {
+        console.error('Error calculating realized P/L:', error);
+      }
+    };
+    
+    calculateRealizedPL();
+  }, [userEmail, championshipId]);
   
   // Generate Google Finance URL
   const getGoogleFinanceUrl = (symbol: string) => {
@@ -110,10 +159,17 @@ export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holding
            
            <div className="mt-6 flex items-center gap-6 border-t pt-4 dark:border-white/5 border-gray-200/50">
               <div>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Total Return</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Total Return (Unrealized)</span>
                 <div className={`flex items-center gap-1 text-lg font-semibold ${isPositive ? 'text-green-600 dark:text-neonGreen' : 'text-red-600 dark:text-mutedRed'}`}>
                   {isPositive ? '+' : ''}${portfolioStats.totalReturn.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   <span className="text-sm">({portfolioStats.totalReturnPercent.toFixed(2)}%)</span>
+                </div>
+              </div>
+              <div className="h-8 w-px bg-gray-200 dark:bg-white/10"></div>
+              <div>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Realized P/L</span>
+                <div className={`flex items-center gap-1 text-lg font-semibold ${realizedPL >= 0 ? 'text-green-600 dark:text-neonGreen' : 'text-red-600 dark:text-mutedRed'}`}>
+                  {realizedPL >= 0 ? '+' : ''}${realizedPL.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </div>
               </div>
               <div className="h-8 w-px bg-gray-200 dark:bg-white/10"></div>
