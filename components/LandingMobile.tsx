@@ -22,16 +22,16 @@ export const LandingMobile: React.FC<LandingMobileProps> = ({
       
       {/* Hero Section */}
       <div className="px-6 pt-12 pb-8 text-center flex-1 flex flex-col justify-center space-y-12">
-        <div className="flex items-center justify-center gap-4 animate-in fade-in zoom-in duration-500">
-          <TrendingUp size={40} className="text-neonGreen drop-shadow-lg" strokeWidth={2.5} />
-          <h1 className={`text-3xl font-bold tracking-tight ${
+        <div className="flex items-center justify-center gap-3 animate-in fade-in zoom-in duration-500">
+          <TrendingUp size={32} className="text-neonGreen drop-shadow-lg" strokeWidth={2.5} />
+          <h1 className={`text-2xl font-bold tracking-tight ${
             theme === 'dark' ? 'text-white' : 'text-gray-900'
           }`}>
             ALPHA<span className="text-neonGreen">ARENA</span>
           </h1>
         </div>
         
-        <p className={`text-5xl font-bold ${
+        <p className={`text-4xl font-bold ${
           theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
         }`}>
           Think Faster.<br/>
@@ -39,7 +39,7 @@ export const LandingMobile: React.FC<LandingMobileProps> = ({
           Win Bigger.
         </p>
         
-        <p className={`text-xl max-w-md mx-auto ${
+        <p className={`text-lg max-w-md mx-auto ${
           theme === 'dark' ? 'text-gray-500' : 'text-gray-600'
         }`}>
           Campionati di trading su Crypto e Azioni USA. Capitale virtuale, prezzi reali, AI integrata.
