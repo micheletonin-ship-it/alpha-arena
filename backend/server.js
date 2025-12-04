@@ -197,8 +197,8 @@ app.post('/api/market-data', async (req, res) => {
           const item = stocksData[symbol];
           if (item) {
             const price = item.latestTrade?.p || item.dailyBar?.c || 0;
-            const prevClose = item.prevDailyBar?.c || item.dailyBar?.o || price;
-            const changePercent = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
+            const openPrice = item.dailyBar?.o || item.prevDailyBar?.c || price;
+            const changePercent = openPrice > 0 ? ((price - openPrice) / openPrice) * 100 : 0;
             const vol = item.dailyBar?.v || 0;
             const volStr = vol > 1000000 ? `${(vol/1000000).toFixed(1)}M` : vol > 1000 ? `${(vol/1000).toFixed(1)}K` : vol.toString();
 
