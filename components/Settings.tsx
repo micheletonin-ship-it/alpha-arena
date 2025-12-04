@@ -7,6 +7,7 @@ import * as db from '../services/database';
 import * as marketService from '../services/marketService'; // Import marketService for Alpaca test
 import * as aiService from '../services/aiService'; // Import aiService for AI key test
 import { APP_CREDENTIALS } from '../credentials.config';
+import { getUserColor } from '../services/utils'; // Import shared utility function
 
 interface SettingsProps {
   theme: Theme;
@@ -117,30 +118,6 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme, user, on
   // const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(user.avatarUrl || null);
   // const [removeAvatarFlag, setRemoveAvatarFlag] = useState(false);
   // const avatarFileInputRef = useRef<HTMLInputElement>(null);
-
-  // NEW: Helper function to generate deterministic colors based on user ID
-  const getUserColor = (userId: string): { from: string, to: string } => {
-    let hash = 0;
-    for (let i = 0; i < userId.length; i++) {
-      hash = userId.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    
-    const colorPairs = [
-      { from: 'from-purple-500', to: 'to-indigo-500' },
-      { from: 'from-pink-500', to: 'to-rose-500' },
-      { from: 'from-blue-500', to: 'to-cyan-500' },
-      { from: 'from-green-500', to: 'to-emerald-500' },
-      { from: 'from-orange-500', to: 'to-amber-500' },
-      { from: 'from-red-500', to: 'to-pink-500' },
-      { from: 'from-violet-500', to: 'to-purple-500' },
-      { from: 'from-teal-500', to: 'to-cyan-500' },
-      { from: 'from-fuchsia-500', to: 'to-pink-500' },
-      { from: 'from-lime-500', to: 'to-green-500' },
-    ];
-    
-    const index = Math.abs(hash) % colorPairs.length;
-    return colorPairs[index];
-  };
 
   // Set stripePaymentsEnabled based on if keys exist
   useEffect(() => {

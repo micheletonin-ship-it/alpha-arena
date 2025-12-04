@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { NavItem, Theme, User } from '../types'; // Import User type
 import { LayoutDashboard, Settings, Sun, Moon, BarChart2, Menu, X, DollarSign, BrainCircuit, Activity, Bot, Radar, LineChart, User as UserIcon, Trophy, Briefcase, Shield, TrendingUp, LogOut } from 'lucide-react'; // Added Shield and LogOut icons
+import { getUserColor } from '../services/utils'; // Import shared utility function
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -53,8 +54,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, toggleTheme, ac
       return <img src={currentUser.avatarUrl} alt="User Avatar" className="h-full w-full rounded-full object-cover" />;
     }
     const initial = currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : '';
+    const colors = currentUser ? getUserColor(currentUser.id) : { from: 'from-purple-500', to: 'to-indigo-500' };
     return (
-      <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 text-white font-bold">
+      <div className={`flex h-full w-full items-center justify-center rounded-full bg-gradient-to-tr ${colors.from} ${colors.to} text-white font-bold`}>
         {initial}
       </div>
     );
