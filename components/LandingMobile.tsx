@@ -55,7 +55,7 @@ export const LandingMobile: React.FC<LandingMobileProps> = ({
           className="w-full flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-bold text-lg bg-neonGreen text-black shadow-lg shadow-neonGreen/20 hover:scale-[1.02] transition-all"
         >
           <ArrowRight size={20} />
-          Inizia Gratis
+          Get Started
         </button>
 
         {/* Secondary CTA */}
@@ -67,7 +67,7 @@ export const LandingMobile: React.FC<LandingMobileProps> = ({
               : 'bg-white hover:bg-gray-50 text-gray-900 border-gray-300'
           }`}
         >
-          Ho già un account
+          Sign In
         </button>
 
         {/* Footer */}
