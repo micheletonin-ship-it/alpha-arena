@@ -210,18 +210,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, toggleTheme, ac
                 ))}
              </nav>
              
-             {/* Mobile Balance Display - Only show for non-admin users */}
-             {!currentUser?.is_admin && (
-               <div className="px-4 pb-4">
-                  <div className={`rounded-xl p-4 ${theme === 'dark' ? 'bg-white/5 border border-white/5' : 'bg-gray-100'}`}>
-                     <p className="text-xs text-gray-500 mb-1">Available Balance</p>
-                     <p className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                        ${userBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                     </p>
-                  </div>
-               </div>
-             )}
-             {/* Removed onSwitchToPersonalPortfolio for mobile */}
+             {/* REMOVED: Mobile Balance Display for launch phase */}
 
              <div className="p-4 border-t border-white/5">
                 <button
