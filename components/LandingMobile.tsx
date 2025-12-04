@@ -14,22 +14,14 @@ export const LandingMobile: React.FC<LandingMobileProps> = ({
   onLogin 
 }) => {
   return (
-    <div className={`min-h-screen w-full flex flex-col relative overflow-hidden ${
+    <div className={`min-h-screen w-full flex flex-col ${
       theme === 'dark' 
-        ? 'bg-[#1E1E1E]' 
+        ? 'bg-gradient-to-br from-[#121212] via-[#1a1a1a] to-[#0a0a0a]' 
         : 'bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100'
     }`}>
       
-      {/* Background decorations - matching desktop */}
-      {theme === 'dark' && (
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute bottom-0 left-0 h-40 w-40 rounded-full bg-neonGreen/20 blur-3xl"></div>
-          <div className="absolute right-10 bottom-0 h-32 w-32 rounded-full bg-blue-500/20 blur-3xl"></div>
-        </div>
-      )}
-      
       {/* Hero Section */}
-      <div className="px-6 pt-12 pb-8 text-center flex-1 flex flex-col justify-center space-y-12 relative z-10">
+      <div className="px-6 pt-12 pb-8 text-center flex-1 flex flex-col justify-center space-y-12">
         <div className="flex items-center justify-center gap-3 animate-in fade-in zoom-in duration-500">
           <TrendingUp size={32} className="text-neonGreen drop-shadow-lg" strokeWidth={2.5} />
           <h1 className={`text-2xl font-bold tracking-tight ${
