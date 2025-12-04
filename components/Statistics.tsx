@@ -180,7 +180,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
             <div>
               <p className="text-sm text-gray-500">Total Asset Value</p>
               <h3 className={`text-2xl font-bold mt-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                ${stats.totalAssetValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                ${stats.totalAssetValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </h3>
             </div>
             <Wallet size={24} className="text-blue-500" />
@@ -193,7 +193,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
             <div>
               <p className="text-sm text-gray-500">Today's Profit/Loss</p>
               <h3 className={`text-2xl font-bold mt-1 ${isDailyPLPositive ? 'text-green-500' : 'text-red-500'}`}>
-                {isDailyPLPositive ? '+' : ''}${stats.dailyPL.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {isDailyPLPositive ? '+' : ''}${stats.dailyPL.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </h3>
             </div>
             {isDailyPLPositive ? <TrendingUp size={24} className="text-green-500" /> : <TrendingDown size={24} className="text-red-500" />}
@@ -206,7 +206,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
             <div>
               <p className="text-sm text-gray-500">Total Portfolio Return</p>
               <h3 className={`text-2xl font-bold mt-1 ${isTotalReturnPositive ? 'text-green-500' : 'text-red-500'}`}>
-                {isTotalReturnPositive ? '+' : ''}${stats.totalPortfolioReturn.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {isTotalReturnPositive ? '+' : ''}${stats.totalPortfolioReturn.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </h3>
               <p className={`text-xs ${isTotalReturnPositive ? 'text-green-500' : 'text-red-500'}`}>
                 ({stats.totalPortfolioReturnPercent.toFixed(2)}%)
@@ -226,14 +226,14 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
             <div>
                 <p className="text-sm text-gray-500">Realized P/L</p>
                 <p className={`text-xl font-bold ${stats.realizedPL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {stats.realizedPL >= 0 ? '+' : ''}${stats.realizedPL.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {stats.realizedPL >= 0 ? '+' : ''}${stats.realizedPL.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">From closed positions</p>
             </div>
             <div>
                 <p className="text-sm text-gray-500">Unrealized P/L</p>
                 <p className={`text-xl font-bold ${stats.unrealizedPL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {stats.unrealizedPL >= 0 ? '+' : ''}${stats.unrealizedPL.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {stats.unrealizedPL >= 0 ? '+' : ''}${stats.unrealizedPL.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">From open positions</p>
             </div>
@@ -247,7 +247,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
             <div>
                 <p className="text-sm text-gray-500">Avg Profit per Trade</p>
                 <p className={`text-xl font-bold ${stats.avgProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {stats.avgProfit >= 0 ? '+' : ''}${stats.avgProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {stats.avgProfit >= 0 ? '+' : ''}${stats.avgProfit.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">Average return</p>
             </div>
@@ -256,7 +256,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
                 {stats.bestTrade ? (
                     <>
                         <p className="text-xl font-bold text-green-500">
-                            +${stats.bestTrade.profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            +${stats.bestTrade.profit.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">{stats.bestTrade.symbol} ({stats.bestTrade.quantity} shares)</p>
                     </>
@@ -269,7 +269,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
                 {stats.worstTrade ? (
                     <>
                         <p className="text-xl font-bold text-red-500">
-                            ${stats.worstTrade.profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            ${stats.worstTrade.profit.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">{stats.worstTrade.symbol} ({stats.worstTrade.quantity} shares)</p>
                     </>
@@ -326,25 +326,25 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
             <div>
                 <p className="text-sm text-gray-500">Total Deposits</p>
                 <p className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                    ${stats.totalDeposits.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    ${stats.totalDeposits.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </p>
             </div>
             <div>
                 <p className="text-sm text-gray-500">Total Withdrawals</p>
                 <p className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                    ${stats.totalWithdrawals.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    ${stats.totalWithdrawals.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </p>
             </div>
             <div>
                 <p className="text-sm text-gray-500">Total Buy Value</p>
                 <p className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                    ${stats.totalBuyValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    ${stats.totalBuyValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </p>
             </div>
             <div>
                 <p className="text-sm text-gray-500">Total Sell Value</p>
                 <p className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                    ${stats.totalSellValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    ${stats.totalSellValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </p>
             </div>
         </div>
@@ -376,16 +376,16 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
                       <div className="text-xs text-gray-500 dark:text-gray-400">{holding.name}</div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="font-medium text-gray-900 dark:text-white">${holding.currentValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                      <div className="font-medium text-gray-900 dark:text-white">${holding.currentValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                       <div className={`text-xs ${holding.dayChangePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                         {holding.dayChangePercent > 0 ? '+' : ''}{holding.dayChangePercent.toFixed(2)}% Today
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="font-medium text-gray-900 dark:text-white">${(holding.avgPrice * holding.quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                      <div className="font-medium text-gray-900 dark:text-white">${(holding.avgPrice * holding.quantity).toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                     </td>
                     <td className={`px-6 py-4 text-right ${holding.totalReturn >= 0 ? 'text-green-600 dark:text-neonGreen' : 'text-red-600 dark:text-mutedRed'}`}>
-                      <div className="font-bold">{holding.totalReturn >= 0 ? '+' : ''}${holding.totalReturn.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                      <div className="font-bold">{holding.totalReturn >= 0 ? '+' : ''}${holding.totalReturn.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                       <div className="text-xs">({holding.returnPercent.toFixed(2)}%)</div>
                     </td>
                   </tr>
