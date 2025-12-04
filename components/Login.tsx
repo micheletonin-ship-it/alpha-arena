@@ -53,15 +53,15 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
             if (legacyUser) {
               console.log('[Login] Legacy user detected:', legacyUser.name);
               setIsLegacyUser(true);
-              setError('Account da migrare. Il tuo account esiste ma deve essere aggiornato al nuovo sistema di autenticazione.');
+              setError('Account migration required. Your account exists but needs to be updated to the new authentication system.');
               setErrorType('legacy_user');
             } else {
               // Normal invalid credentials
-              setError(result.message || 'Login fallito');
+              setError(result.message || 'Login failed');
               setErrorType(resultErrorType);
             }
           } else {
-            setError(result.message || 'Login fallito');
+            setError(result.message || 'Login failed');
             setErrorType(resultErrorType);
           }
         }
@@ -74,20 +74,20 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
         if (result.success) {
           if (result.requiresConfirmation) {
             setAwaitingConfirmation(true);
-            setSuccessMessage(result.message || 'Controlla la tua email per confermare la registrazione!');
+            setSuccessMessage(result.message || 'Check your email to confirm your registration!');
           } else {
             // Auto-login if no confirmation required
             onLogin(email, finalName);
           }
         } else {
-          setError(result.message || 'Registrazione fallita');
+          setError(result.message || 'Registration failed');
           if ((result as any).isDuplicate) {
             setIsDuplicateEmail(true);
           }
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Si è verificato un errore');
+      setError(err.message || 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -99,9 +99,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
     
     const result = await resendConfirmationEmail(email);
     if (result.success) {
-      setSuccessMessage(result.message || 'Email inviata!');
+      setSuccessMessage(result.message || 'Email sent!');
     } else {
-      setError(result.message || 'Errore invio email');
+      setError(result.message || 'Email send error');
     }
     
     setLoading(false);
@@ -109,7 +109,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
 
   const handleForgotPassword = async () => {
     if (!email) {
-      setError('Inserisci la tua email per reimpostare la password');
+      setError('Enter your email to reset your password');
       return;
     }
     
@@ -161,26 +161,26 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
               Win Bigger.
             </p>
             <p className={`text-sm mt-4 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>
-              Campionati di trading su Crypto & Azioni USA<br/>
-              con capitale virtuale, prezzi reali e AI integrata.
+              Trading championships with real prices.<br/>
+              Virtual capital. AI-powered strategies.
             </p>
             <div className={`mt-6 space-y-3 text-left ${theme === 'dark' ? 'text-gray-400' : 'text-gray-700'}`}>
               <div>
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Trophy size={16} className="text-neonGreen flex-shrink-0" />
-                  <span>Campionati multipli</span>
+                  <span>Multiple Championships</span>
                 </div>
                 <p className={`text-xs mt-1 ml-6 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>
-                  Gratis o con buy-in e montepremi reale.
+                  Free or with buy-in and real prize pools.
                 </p>
               </div>
               <div>
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Bot size={16} className="text-neonGreen flex-shrink-0" />
-                  <span>Strategie automatiche</span>
+                  <span>Automatic Strategies</span>
                 </div>
                 <p className={`text-xs mt-1 ml-6 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>
-                  Il sistema opera automaticamente sulla strategia scelta.
+                  The system operates automatically on the chosen strategy.
                 </p>
               </div>
               <div>
@@ -189,16 +189,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
                   <span>AI Suggestions</span>
                 </div>
                 <p className={`text-xs mt-1 ml-6 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>
-                  Strategia AI consigliata per ogni titolo.
+                  AI-recommended strategy for each ticker.
                 </p>
               </div>
               <div>
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <MessageSquare size={16} className="text-neonGreen flex-shrink-0" />
-                  <span>ChatBot portafoglio</span>
+                  <span>Portfolio ChatBot</span>
                 </div>
                 <p className={`text-xs mt-1 ml-6 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>
-                  Chiedi <em>"Come sto andando?"</em> per una risposta immediata.
+                  Ask <em>"How am I doing?"</em> for an immediate response.
                 </p>
               </div>
             </div>
@@ -226,26 +226,26 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
                   Win Bigger.
                 </h1>
                 <p className="text-lg text-gray-300">
-                  Campionati di trading su Crypto & Azioni USA<br/>
-                  con capitale virtuale, prezzi reali e AI integrata.
+                  Trading championships with real prices.<br/>
+                  Virtual capital. AI-powered strategies.
                 </p>
                 <div className="space-y-4 text-white/90">
                   <div>
                     <div className="flex items-center gap-3 font-medium">
                       <Trophy size={20} className="text-neonGreen flex-shrink-0" />
-                      <span>Campionati multipli</span>
+                      <span>Multiple Championships</span>
                     </div>
                     <p className="text-sm text-gray-400 mt-1 ml-8">
-                      Gratis o con buy-in e montepremi reale.
+                      Free or with buy-in and real prize pools.
                     </p>
                   </div>
                   <div>
                     <div className="flex items-center gap-3 font-medium">
                       <Bot size={20} className="text-neonGreen flex-shrink-0" />
-                      <span>Strategie automatiche</span>
+                      <span>Automatic Strategies</span>
                     </div>
                     <p className="text-sm text-gray-400 mt-1 ml-8">
-                      Il sistema opera automaticamente sulla strategia scelta.
+                      The system operates automatically on the chosen strategy.
                     </p>
                   </div>
                   <div>
@@ -254,16 +254,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
                       <span>AI Suggestions</span>
                     </div>
                     <p className="text-sm text-gray-400 mt-1 ml-8">
-                      Strategia AI consigliata per ogni titolo.
+                      AI-recommended strategy for each ticker.
                     </p>
                   </div>
                   <div>
                     <div className="flex items-center gap-3 font-medium">
                       <MessageSquare size={20} className="text-neonGreen flex-shrink-0" />
-                      <span>ChatBot portafoglio</span>
+                      <span>Portfolio ChatBot</span>
                     </div>
                     <p className="text-sm text-gray-400 mt-1 ml-8">
-                      Chiedi <em>"Come sto andando?"</em> per una risposta immediata.
+                      Ask <em>"How am I doing?"</em> for an immediate response.
                     </p>
                   </div>
                 </div>
@@ -372,7 +372,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 p-3 text-xs text-yellow-400">
                         <AlertCircle size={14} />
-                        <span>Clicca qui sotto per migrare il tuo account e impostare una nuova password. Riceverai un'email con le istruzioni.</span>
+                        <span>Click below to migrate your account and set a new password. You will receive an email with instructions.</span>
                       </div>
                       <button
                         type="button"
@@ -380,7 +380,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
                         disabled={isFormLoading}
                         className="w-full text-center text-sm text-black bg-neonGreen hover:bg-neonGreen/90 py-3 rounded-lg font-bold disabled:opacity-50 transition-all"
                       >
-                        🔄 Migra Account e Reimposta Password
+                        🔄 Migrate Account & Reset Password
                       </button>
                     </div>
                   )}
@@ -392,7 +392,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
                       disabled={isFormLoading}
                       className="w-full text-center text-xs text-neonGreen hover:underline font-semibold disabled:opacity-50"
                     >
-                      📧 Invia di nuovo email di conferma
+                      📧 Resend confirmation email
                     </button>
                   )}
                   
@@ -403,7 +403,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
                       disabled={isFormLoading}
                       className="w-full text-center text-xs text-neonGreen hover:underline font-semibold disabled:opacity-50"
                     >
-                      🔑 Reimposta la password
+                      🔑 Reset password
                     </button>
                   )}
                   
@@ -413,7 +413,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
                       onClick={() => setIsLogin(true)}
                       className="w-full text-center text-xs text-neonGreen hover:underline font-semibold"
                     >
-                      ← Vai al Login
+                      ← Go to Login
                     </button>
                   )}
                 </div>
@@ -434,7 +434,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
                     disabled={isFormLoading}
                     className="text-xs text-neonGreen hover:underline disabled:opacity-50"
                   >
-                    Non hai ricevuto l'email? Invia di nuovo
+                    Didn't receive the email? Send again
                   </button>
                 </div>
               )}
