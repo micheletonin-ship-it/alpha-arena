@@ -643,9 +643,9 @@ const AppContent: React.FC = () => {
         const alpacaKey = APP_CREDENTIALS.ALPACA_KEY || null;
         const alpacaSecret = APP_CREDENTIALS.ALPACA_SECRET || null;
         const hasAlpaca = !!alpacaKey && !!alpacaSecret; 
-        const intervalTime = hasAlpaca ? 120000 : 300000; // Rilassato: 2 min con Alpaca, 5 min senza
+        const intervalTime = hasAlpaca ? 30000 : 300000; // 30 secondi con Alpaca, 5 min senza
 
-        intervalId = setInterval(getData, intervalTime); 
+        intervalId = setInterval(getData, intervalTime);
     };
 
     startPolling();
