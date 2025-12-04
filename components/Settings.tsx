@@ -107,26 +107,40 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme, user, on
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
   const [connectionTestResult, setConnectionTestResult] = useState<{success: boolean, message: string} | null>(null);
 
-  // Edit Profile State
-  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
-  const [editName, setEditName] = useState(user.name);
-  const [editAccountType, setEditAccountType] = useState<'Basic' | 'Pro'>(user.accountType);
-  const [editIsAdmin, setEditIsAdmin] = useState(user.is_admin || false); // NEW: Admin flag
+  // REMOVED: Edit Profile functionality for launch phase
+  // Edit Profile State - Commented out for now
+  // const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  // const [editName, setEditName] = useState(user.name);
+  // const [editAccountType, setEditAccountType] = useState<'Basic' | 'Pro'>(user.accountType);
+  // const [editIsAdmin, setEditIsAdmin] = useState(user.is_admin || false);
+  // const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
+  // const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(user.avatarUrl || null);
+  // const [removeAvatarFlag, setRemoveAvatarFlag] = useState(false);
+  // const avatarFileInputRef = useRef<HTMLInputElement>(null);
 
-  // NEW: Avatar State for Edit Profile Modal
-  const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
-  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(user.avatarUrl || null);
-  const [removeAvatarFlag, setRemoveAvatarFlag] = useState(false);
-  const avatarFileInputRef = useRef<HTMLInputElement>(null);
-
-  // Effect to clean up object URL when component unmounts or avatarPreviewUrl changes
-  useEffect(() => {
-    return () => {
-      if (avatarPreviewUrl && avatarPreviewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(avatarPreviewUrl);
-      }
-    };
-  }, [avatarPreviewUrl]);
+  // NEW: Helper function to generate deterministic colors based on user ID
+  const getUserColor = (userId: string): { from: string, to: string } => {
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    const colorPairs = [
+      { from: 'from-purple-500', to: 'to-indigo-500' },
+      { from: 'from-pink-500', to: 'to-rose-500' },
+      { from: 'from-blue-500', to: 'to-cyan-500' },
+      { from: 'from-green-500', to: 'to-emerald-500' },
+      { from: 'from-orange-500', to: 'to-amber-500' },
+      { from: 'from-red-500', to: 'to-pink-500' },
+      { from: 'from-violet-500', to: 'to-purple-500' },
+      { from: 'from-teal-500', to: 'to-cyan-500' },
+      { from: 'from-fuchsia-500', to: 'to-pink-500' },
+      { from: 'from-lime-500', to: 'to-green-500' },
+    ];
+    
+    const index = Math.abs(hash) % colorPairs.length;
+    return colorPairs[index];
+  };
 
   // Set stripePaymentsEnabled based on if keys exist
   useEffect(() => {
@@ -283,88 +297,20 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme, user, on
     setTimeout(() => setIsSaved(false), 3000);
   };
 
-  const handleOpenEditProfile = () => {
-      setEditName(user.name);
-      setEditAccountType(user.accountType);
-      setEditIsAdmin(user.is_admin || false); // NEW: Initialize admin state
-      // Initialize avatar states for the modal
-      setSelectedAvatarFile(null); // No new file selected yet
-      setAvatarPreviewUrl(user.avatarUrl || null); // Use current user avatar for preview
-      setRemoveAvatarFlag(false); // Not attempting to remove yet
-      setIsEditProfileOpen(true);
-  };
-
-  const handleAvatarSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (file) {
-          try {
-              // Revoke previous object URL if it exists and is a blob URL
-              if (avatarPreviewUrl && avatarPreviewUrl.startsWith('blob:')) {
-                  URL.revokeObjectURL(avatarPreviewUrl);
-              }
-              const previewUrl = URL.createObjectURL(file);
-              setSelectedAvatarFile(file);
-              setAvatarPreviewUrl(previewUrl);
-              setRemoveAvatarFlag(false); // No longer removing if a new file is selected
-          } catch (error) {
-              console.error("Error setting avatar preview:", error);
-              alert("Failed to create image preview. Please try another file.");
-          }
-      } else {
-      }
-      // Reset the input value to allow selecting the same file again if needed
-      if (avatarFileInputRef.current) {
-        avatarFileInputRef.current.value = '';
-      }
-  };
-
-  const handleRemoveAvatar = () => {
-      if (avatarPreviewUrl && avatarPreviewUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(avatarPreviewUrl); // Clean up old object URL if any
-      }
-      setSelectedAvatarFile(null); // Important: Clear the selected file as well
-      setAvatarPreviewUrl(null); // Clear preview
-      setRemoveAvatarFlag(true); // Indicate that user wants to remove avatar
-  };
-
-  const handleSaveProfile = async () => {
-      let newAvatarUrl: string | undefined = user.avatarUrl; // Start with current avatar
-
-      if (removeAvatarFlag) {
-          newAvatarUrl = undefined; // User explicitly wants to remove
-      } else if (selectedAvatarFile) {
-          // New file selected, convert to Base64 Data URL
-          try {
-              newAvatarUrl = await fileToBase64DataUrl(selectedAvatarFile);
-          } catch (error) {
-              alert("Failed to convert image. Please try another file.");
-              console.error("Failed to convert avatar to Base64:", error);
-              return;
-          }
-      }
-      // If neither removeFlag nor new file, newAvatarUrl remains user.avatarUrl (no change)
-
-      const updatedUser: User = { 
-          ...user, 
-          name: editName,
-          accountType: editAccountType,
-          avatarUrl: newAvatarUrl, // Use the determined avatar URL
-          is_admin: editIsAdmin, // NEW: Update admin flag
-      };
-      await db.updateUser(updatedUser);
-      if (onRefreshData) onRefreshData();
-      setIsEditProfileOpen(false);
-  };
-
+  // REMOVED: Edit Profile handlers for launch phase
+  // const handleOpenEditProfile = () => { ... };
+  // const handleAvatarSelect = async (event: React.ChangeEvent<HTMLInputElement>) => { ... };
+  // const handleRemoveAvatar = () => { ... };
+  // const handleSaveProfile = async () => { ... };
 
   const renderProfileAvatar = (size: string, isBig = false) => {
-    const avatarToDisplay = avatarPreviewUrl || user.avatarUrl; // Prioritize modal preview, then user's saved avatar
-    if (avatarToDisplay) {
-        return <img src={avatarToDisplay} alt="User Avatar" className={`h-full w-full rounded-full object-cover ${isBig ? 'border-4 border-background dark:border-[#121212]' : ''}`} />;
+    if (user.avatarUrl) {
+        return <img src={user.avatarUrl} alt="User Avatar" className={`h-full w-full rounded-full object-cover ${isBig ? 'border-4 border-background dark:border-[#121212]' : ''}`} />;
     }
     const initial = user.name ? user.name.charAt(0).toUpperCase() : '';
+    const colors = getUserColor(user.id);
     return (
-      <div className={`flex h-full w-full items-center justify-center rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 text-white font-bold ${size}`}>
+      <div className={`flex h-full w-full items-center justify-center rounded-full bg-gradient-to-tr ${colors.from} ${colors.to} text-white font-bold ${size}`}>
         {initial}
       </div>
     );
@@ -393,12 +339,8 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme, user, on
                </span>
             </div>
          </div>
-         <button 
-            onClick={handleOpenEditProfile}
-            className={`rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${theme === 'dark' ? 'border-white/10 bg-white/5 hover:bg-white/10 text-white' : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-900'}`}
-        >
-            Edit Profile
-         </button>
+         {/* REMOVED: Edit Profile button for launch phase */}
+         {/* <button onClick={handleOpenEditProfile} ...>Edit Profile</button> */}
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -765,103 +707,7 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme, user, on
          </div>
       </div>
 
-      {/* Edit Profile Modal */}
-      {isEditProfileOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className={`w-full max-w-md overflow-hidden rounded-2xl shadow-2xl ${theme === 'dark' ? 'bg-[#1E1E1E] border border-white/10' : 'bg-white border-gray-200'}`}>
-                {/* Header */}
-                <div className={`flex items-center justify-between border-b px-6 py-4 ${theme === 'dark' ? 'border-white/10' : 'border-gray-100'}`}>
-                    <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Edit Profile</h3>
-                    <button onClick={() => setIsEditProfileOpen(false)} className={`rounded-full p-1 transition-colors ${theme === 'dark' ? 'text-gray-400 hover:bg-white/10 hover:text-white' : 'text-gray-500 hover:bg-gray-100'}`}>
-                        <X size={20} />
-                    </button>
-                </div>
-                {/* Body */}
-                <div className="p-6 space-y-4">
-                    {/* Avatar Upload */}
-                    <div className="flex flex-col items-center gap-3">
-                        <input
-                            type="file"
-                            accept="image/*"
-                            ref={avatarFileInputRef}
-                            style={{ display: 'none' }}
-                            onChange={handleAvatarSelect}
-                        />
-                        <div 
-                            className="relative h-28 w-28 rounded-full overflow-hidden cursor-pointer group"
-                            onClick={() => avatarFileInputRef.current?.click()}
-                        >
-                            {renderProfileAvatar("text-4xl", true)}
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Camera size={32} className="text-white"/>
-                            </div>
-                        </div>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => avatarFileInputRef.current?.click()}
-                                className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${theme === 'dark' ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}
-                            >
-                                Change Avatar
-                            </button>
-                            {(avatarPreviewUrl || user.avatarUrl) && ( // Only show remove if there's an avatar
-                                <button
-                                    onClick={handleRemoveAvatar}
-                                    className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${theme === 'dark' ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}
-                                >
-                                    Remove Avatar
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                    <div>
-                        <label className={`mb-1 block text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Full Name</label>
-                        <input 
-                            type="text" 
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            className={`w-full rounded-xl border px-4 py-2 text-base outline-none ${theme === 'dark' ? 'bg-black/30 border-white/10 text-white focus:border-neonGreen/50' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`}
-                        />
-                    </div>
-                    <div>
-                        <label className={`mb-1 block text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Account Type</label>
-                        <select 
-                            value={editAccountType}
-                            onChange={(e) => setEditAccountType(e.target.value as 'Basic' | 'Pro')}
-                            className={`w-full rounded-xl border px-4 py-2 text-base outline-none ${theme === 'dark' ? 'bg-black/30 border-white/10 text-white focus:border-neonGreen/50' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`}
-                        >
-                            <option value="Basic" className={theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black'}>Basic</option>
-                            <option value="Pro" className={theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black'}>Pro</option>
-                        </select>
-                    </div>
-                    {/* NEW: Admin Toggle */}
-                    {user.is_admin && ( // Only show if the current logged-in user is an admin
-                        <div>
-                            <label className={`mb-1 block text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Admin Privileges</label>
-                            <div className="flex items-center justify-between rounded-xl border px-4 py-2">
-                                <span className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Grant Admin Access</span>
-                                <Toggle checked={editIsAdmin} onChange={() => setEditIsAdmin(!editIsAdmin)} theme={theme} />
-                            </div>
-                        </div>
-                    )}
-                </div>
-                {/* Footer */}
-                <div className={`flex justify-end gap-3 px-6 py-4 border-t ${theme === 'dark' ? 'border-white/10' : 'border-gray-100'}`}>
-                    <button 
-                        onClick={() => setIsEditProfileOpen(false)}
-                        className={`rounded-xl px-4 py-2.5 text-sm font-medium ${theme === 'dark' ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}
-                    >
-                        Cancel
-                    </button>
-                    <button 
-                        onClick={handleSaveProfile}
-                        className={`flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-bold text-black shadow-lg transition-all hover:scale-[1.02] ${theme === 'dark' ? 'bg-neonGreen shadow-neonGreen/20 hover:bg-neonGreen/90' : 'bg-black text-white hover:bg-gray-800'}`}
-                    >
-                        <Save size={16}/> Save Changes
-                    </button>
-                </div>
-            </div>
-        </div>
-      )}
+      {/* REMOVED: Edit Profile Modal for launch phase */}
     </div>
   );
 };
