@@ -1402,6 +1402,7 @@ const AppContent: React.FC = () => {
         userBalance={buyingPower} 
         currentUser={currentUser}
         currentChampionshipName={currentChampionshipName} // UPDATED: now string
+        onLogout={handleLogout} // NEW: Log out handler for mobile sidebar
         // Removed onSwitchToPersonalPortfolio
     >
       

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { NavItem, Theme, User } from '../types'; // Import User type
-import { LayoutDashboard, Settings, Sun, Moon, BarChart2, Menu, X, DollarSign, BrainCircuit, Activity, Bot, Radar, LineChart, User as UserIcon, Trophy, Briefcase, Shield, TrendingUp } from 'lucide-react'; // Added Shield icon
+import { LayoutDashboard, Settings, Sun, Moon, BarChart2, Menu, X, DollarSign, BrainCircuit, Activity, Bot, Radar, LineChart, User as UserIcon, Trophy, Briefcase, Shield, TrendingUp, LogOut } from 'lucide-react'; // Added Shield and LogOut icons
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,10 +12,11 @@ interface LayoutProps {
   userBalance?: number;
   currentUser: User | null; // Pass current user to access avatarUrl
   currentChampionshipName?: string; // UPDATED: Display current championship, now string (undefined if none)
+  onLogout: () => void; // NEW: Log out handler
   // Removed onSwitchToPersonalPortfolio
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children, theme, toggleTheme, activeTab, setActiveTab, userBalance = 0, currentUser, currentChampionshipName }) => {
+export const Layout: React.FC<LayoutProps> = ({ children, theme, toggleTheme, activeTab, setActiveTab, userBalance = 0, currentUser, currentChampionshipName, onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Base navigation items (for regular users/players)
@@ -210,7 +211,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, toggleTheme, ac
                 ))}
              </nav>
              
-             {/* REMOVED: Mobile Balance Display for launch phase */}
+             {/* NEW: Log Out button (replaces Available Balance) */}
+             <div className="px-4 pb-4">
+                <button
+                  onClick={onLogout}
+                  className={`flex w-full items-center justify-center gap-2 rounded-xl p-3 text-sm font-medium transition-colors bg-red-500/10 text-red-500 hover:bg-red-500/20`}
+                >
+                  <LogOut size={18} /> Sign Out
+                </button>
+             </div>
 
              <div className="p-4 border-t border-white/5">
                 <button
