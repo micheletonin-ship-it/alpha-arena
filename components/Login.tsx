@@ -132,6 +132,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
   return (
     <div className={`flex min-h-screen w-full flex-col items-center justify-center transition-colors duration-300 ${theme === 'dark' ? 'bg-gradient-to-br from-[#121212] via-[#1a1a1a] to-[#0a0a0a]' : 'bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100'}`}>
       
+      {/* Mobile Logo - Always visible on mobile */}
+      <div className="w-full px-6 pt-8 pb-4 md:hidden">
+        <div className="flex items-center justify-center gap-2 animate-in fade-in duration-300">
+          <TrendingUp size={32} className="text-neonGreen drop-shadow-lg" strokeWidth={2.5} />
+          <span className={`text-2xl font-bold tracking-tight ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            ALPHA<span className="text-neonGreen">ARENA</span>
+          </span>
+        </div>
+      </div>
+
       {/* Mobile Hero Section - Only visible on mobile when NOT coming from landing */}
       {!fromLanding && (
       <div className="w-full max-w-md px-4 mb-8 md:hidden animate-in fade-in slide-in-from-top duration-700">
