@@ -9,9 +9,10 @@ interface LoginProps {
   onLogin: (email: string, name: string) => void;
   theme: Theme;
   isLoading?: boolean;
+  fromLanding?: boolean;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externalLoading = false }) => {
+export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externalLoading = false, fromLanding = false }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -131,7 +132,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
   return (
     <div className={`flex min-h-screen w-full flex-col items-center justify-center transition-colors duration-300 ${theme === 'dark' ? 'bg-gradient-to-br from-[#121212] via-[#1a1a1a] to-[#0a0a0a]' : 'bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100'}`}>
       
-      {/* Mobile Hero Section - Only visible on mobile */}
+      {/* Mobile Hero Section - Only visible on mobile when NOT coming from landing */}
+      {!fromLanding && (
       <div className="w-full max-w-md px-4 mb-8 md:hidden animate-in fade-in slide-in-from-top duration-700">
         <div className="text-center space-y-6">
           {/* Logo & Tagline */}
@@ -192,6 +194,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
           </div>
         </div>
       </div>
+      )}
 
       {/* Main Login Card */}
       <div className="flex w-full max-w-5xl overflow-hidden rounded-3xl shadow-2xl mx-4 animate-in fade-in zoom-in duration-500 delay-150">
