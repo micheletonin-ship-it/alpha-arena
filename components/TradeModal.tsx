@@ -37,7 +37,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   championshipId, // UPDATED: now mandatory
   maxTradeAmount,
 }) => {
-  const [quantity, setQuantity] = useState<string>('');
+  const [dollarAmount, setDollarAmount] = useState<string>(''); // Changed from quantity to dollarAmount
   const [selectedStrategyId, setSelectedStrategyId] = useState<string>(defaultStrategyId || '');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -62,11 +62,11 @@ export const TradeModal: React.FC<TradeModalProps> = ({
           );
           
           if (!validation.isValid) {
-            setTickerValidationError(validation.message || 'Ticker non consentito in questo campionato');
+            setTickerValidationError(validation.message || 'Ticker not allowed in this championship');
           }
         } catch (error) {
           console.error('Error validating ticker:', error);
-          setTickerValidationError('Errore durante la validazione del ticker');
+          setTickerValidationError('Error validating ticker');
         } finally {
           setIsValidatingTicker(false);
         }
@@ -79,7 +79,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
   // Reset when opening
   useEffect(() => {
     if (isOpen) {
-        setQuantity('');
+        setDollarAmount('');
         if (defaultStrategyId) setSelectedStrategyId(defaultStrategyId);
         setRecommendationReason(null);
         setAiSuggestionError(null); // Clear AI error on open
@@ -88,26 +88,69 @@ export const TradeModal: React.FC<TradeModalProps> = ({
 
   if (!isOpen || !stock) return null;
 
-  const qty = parseFloat(quantity);
-  const isValidQty = !isNaN(qty) && qty > 0;
-  const estimatedTotal = isValidQty ? qty * currentPrice : 0;
+  // NEW: Calculate shares from dollar amount
+  const amount = parseFloat(dollarAmount);
+  const isValidAmount = !isNaN(amount) && amount > 0;
+  
+  // Check if crypto (fractional shares allowed)
+  const isCrypto = stock.symbol.includes('-USD');
+  
+  // Calculate shares based on amount
+  let calculatedShares = 0;
+  if (isValidAmount && currentPrice > 0) {
+      calculatedShares = amount / currentPrice;
+      // Round down to whole shares for stocks (not crypto)
+      if (!isCrypto) {
+          calculatedShares = Math.floor(calculatedShares);
+      }
+  }
+  
+  // Actual total based on calculated shares
+  const estimatedTotal = calculatedShares * currentPrice;
 
   // Validation Logic
   let error = '';
-  if (isValidQty) {
+  if (isValidAmount) {
       if (type === 'buy') {
-          if (estimatedTotal > userBalance) {
-              error = `Fondi insufficienti.`;
-          } else if (estimatedTotal > maxTradeAmount) {
-              error = `Il valore del trade supera il limite massimo di $${maxTradeAmount.toLocaleString()}.`;
+          if (amount > userBalance) {
+              error = `Insufficient funds.`;
+          } else if (amount > maxTradeAmount) {
+              error = `Trade value exceeds the maximum limit of $${maxTradeAmount.toLocaleString()}.`;
+          } else if (!isCrypto && calculatedShares < 1) {
+              error = `Amount too small. Minimum purchase for this stock is $${Math.ceil(currentPrice).toLocaleString()}.`;
           }
-      } else if (type === 'sell' && qty > userHoldingQuantity) {
-          error = `Azioni insufficienti. Possiedi: ${userHoldingQuantity}`;
+      } else if (type === 'sell' && calculatedShares > userHoldingQuantity) {
+          error = `Insufficient shares. You own: ${userHoldingQuantity}`;
       }
   }
 
   // Calculate remaining balance after trade (preview)
   const remainingBalance = type === 'buy' ? userBalance - estimatedTotal : userBalance + estimatedTotal;
+
+  // Quick amount buttons (for BUY)
+  const quickAmounts = [500, 1000, 5000, 10000];
+  const handleQuickAmount = (amt: number) => {
+      setDollarAmount(amt.toString());
+  };
+  const handleMaxAmount = () => {
+      const maxAllowed = Math.min(userBalance, maxTradeAmount);
+      setDollarAmount(maxAllowed.toString());
+  };
+
+  // Percentage buttons (for SELL)
+  const handleSellPercentage = (percentage: number) => {
+      // Calculate shares to sell based on percentage
+      let sharesToSell = (userHoldingQuantity * percentage) / 100;
+      
+      // Round to whole shares for stocks (not crypto)
+      if (!isCrypto) {
+          sharesToSell = Math.floor(sharesToSell);
+      }
+      
+      // Calculate dollar amount based on shares
+      const dollarValue = sharesToSell * currentPrice;
+      setDollarAmount(dollarValue.toFixed(2));
+  };
 
   const handleRefresh = async () => {
       if(onRefreshBalance) {
@@ -135,22 +178,22 @@ export const TradeModal: React.FC<TradeModalProps> = ({
           }
       } catch (e: any) {
           console.error("AI Suggestion error:", e);
-          let errorMessage = "Errore durante la richiesta del suggerimento AI. Controlla la tua chiave API AI e riprova.";
+          let errorMessage = "Error requesting AI suggestion. Check your AI API key and try again.";
 
           if (e.message?.includes('API Key not configured.')) {
-              errorMessage = `Errore chiave API AI: La chiave API per il provider AI selezionato non è configurata o non è valida. Configurala nelle Impostazioni.`;
+              errorMessage = `AI API Key Error: The API key for the selected AI provider is not configured or invalid. Configure it in Settings.`;
           } else if (e.message?.includes('AI Quota Exceeded')) {
-              errorMessage = `Errore AI: Quota API esaurita o limiti di tariffa raggiunti. Prova più tardi o aggiorna la tua chiave API.`;
+              errorMessage = `AI Error: API quota exhausted or rate limits reached. Try later or update your API key.`;
           } else if (e.message?.includes('Failed to fetch') || e.message?.includes('Network error')) {
-              errorMessage = "Errore di rete: Impossibile connettersi ai servizi AI. Controlla la tua connessione internet.";
+              errorMessage = "Network Error: Unable to connect to AI services. Check your internet connection.";
           } else if (e.message?.includes('OpenAI Error:')) {
-            errorMessage = `OpenAI API Error: ${e.message.replace('OpenAI Error: ', '')} Controlla la tua chiave API o lo stato del tuo account OpenAI.`;
+            errorMessage = `OpenAI API Error: ${e.message.replace('OpenAI Error: ', '')} Check your API key or OpenAI account status.`;
           } else if (e.message?.includes('Anthropic Error:')) {
-            errorMessage = `Anthropic API Error: ${e.message.replace('Anthropic Error: ', '')} Controlla la tua chiave API o lo stato del tuo account Anthropic.`;
+            errorMessage = `Anthropic API Error: ${e.message.replace('Anthropic Error: ', '')} Check your API key or Anthropic account status.`;
           } else if (e.message?.includes('Gemini Error:')) {
-            errorMessage = `Gemini API Error: ${e.message.replace('Gemini Error: ', '')} Controlla la tua chiave API o lo stato del tuo account Google AI.`;
+            errorMessage = `Gemini API Error: ${e.message.replace('Gemini Error: ', '')} Check your API key or Google AI account status.`;
           } else if (e.message) {
-            errorMessage = `Errore AI: ${e.message}. Riprova o controlla le impostazioni API.`;
+            errorMessage = `AI Error: ${e.message}. Try again or check API settings.`;
           }
           setAiSuggestionError(errorMessage);
       } finally {
@@ -180,7 +223,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                         <ShieldX size={24} className="text-red-500 mt-0.5 shrink-0" />
                         <div className="flex-1">
                             <p className={`text-sm font-bold ${theme === 'dark' ? 'text-red-400' : 'text-red-700'} mb-1`}>
-                                Ticker Non Consentito
+                                Ticker Not Allowed
                             </p>
                             <p className="text-xs text-gray-500">
                                 {tickerValidationError}
@@ -213,27 +256,101 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                                  </button>
                              )}
                          </div>
+                         {type === 'sell' && (
+                             <p className="text-xs text-gray-400 mt-1">
+                                 Position Value: ${(userHoldingQuantity * currentPrice).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                             </p>
+                         )}
                     </div>
                 </div>
 
-                {/* Input Area */}
+                {/* Input Area - Dollar Amount */}
                 <div>
                     <label className={`mb-2 block text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                        Quantity
+                        {type === 'buy' ? 'Amount to Invest' : 'Dollar Value to Sell'}
                     </label>
+                    
+                    {/* Quick Amount Buttons (Buy Only) */}
+                    {type === 'buy' && (
+                        <div className="mb-3 flex flex-wrap gap-2">
+                            {quickAmounts.map(amt => (
+                                <button
+                                    key={amt}
+                                    type="button"
+                                    onClick={() => handleQuickAmount(amt)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                                        theme === 'dark' 
+                                        ? 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white' 
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                    }`}
+                                >
+                                    ${amt.toLocaleString()}
+                                </button>
+                            ))}
+                            <button
+                                type="button"
+                                onClick={handleMaxAmount}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                                    theme === 'dark' 
+                                    ? 'bg-neonGreen/10 text-neonGreen hover:bg-neonGreen/20' 
+                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                }`}
+                            >
+                                Max
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* Percentage Buttons (Sell Only) */}
+                    {type === 'sell' && (
+                        <div className="mb-3 flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => handleSellPercentage(50)}
+                                className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                    theme === 'dark' 
+                                    ? 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white' 
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
+                            >
+                                50% - Half Position
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleSellPercentage(100)}
+                                className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                    theme === 'dark' 
+                                    ? 'bg-mutedRed/20 text-mutedRed hover:bg-mutedRed/30' 
+                                    : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                }`}
+                            >
+                                100% - Full Position
+                            </button>
+                        </div>
+                    )}
+                    
                     <div className="relative">
+                        <DollarSign size={20} className={`absolute left-4 top-1/2 -translate-y-1/2 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} />
                         <input 
                             type="number" 
-                            value={quantity}
-                            onChange={(e) => setQuantity(e.target.value)}
+                            value={dollarAmount}
+                            onChange={(e) => setDollarAmount(e.target.value)}
                             placeholder="0.00"
-                            className={`w-full rounded-xl border px-4 py-3 text-lg font-semibold outline-none transition-all focus:ring-2 ${
+                            className={`w-full rounded-xl border pl-12 pr-4 py-3 text-lg font-semibold outline-none transition-all focus:ring-2 ${
                                 theme === 'dark' 
                                 ? 'bg-black/30 border-white/10 text-white placeholder:text-gray-600 focus:border-neonGreen/50 focus:ring-neonGreen/20' 
                                 : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500 focus:ring-blue-500/20'
                             } ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
                         />
                     </div>
+                    
+                    {/* Show calculated shares */}
+                    {isValidAmount && calculatedShares > 0 && !error && (
+                        <p className={`mt-2 text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                            ≈ {calculatedShares.toFixed(isCrypto ? 3 : 0)} {isCrypto ? 'units' : 'shares'}
+                            {!isCrypto && ' (rounded to whole shares)'}
+                        </p>
+                    )}
                     
                     {/* Error / Warning Message */}
                     {error && (
@@ -243,13 +360,13 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                                  <p className="font-semibold">{error}</p>
                                  {type === 'buy' && estimatedTotal > userBalance && (
                                      <p className="mt-1">
-                                        You need ${estimatedTotal.toFixed(2)} but only have ${userBalance.toFixed(2)}. 
+                                        You need ${amount.toFixed(2)} but only have ${userBalance.toFixed(2)}. 
                                         Please deposit funds in Wallet.
                                      </p>
                                  )}
-                                 {type === 'buy' && estimatedTotal > maxTradeAmount && (
+                                 {type === 'buy' && amount > maxTradeAmount && (
                                      <p className="mt-1">
-                                        Il valore massimo consentito per un singolo acquisto è di $${maxTradeAmount.toLocaleString()}.
+                                        The maximum allowed value for a single purchase is $${maxTradeAmount.toLocaleString()}.
                                      </p>
                                  )}
                              </div>
@@ -324,7 +441,7 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                             ${estimatedTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                     </div>
-                    {type === 'buy' && isValidQty && !error && (
+                    {type === 'buy' && isValidAmount && !error && (
                          <div className="flex items-center justify-between border-t border-dashed border-gray-500/30 pt-2 text-xs">
                              <span className="text-gray-500">Remaining Balance</span>
                              <span className="font-mono text-gray-500">${remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -333,8 +450,8 @@ export const TradeModal: React.FC<TradeModalProps> = ({
                 </div>
 
                 <button 
-                    onClick={() => isValidQty && !error && !tickerValidationError && onConfirm(qty, selectedStrategyId)}
-                    disabled={!isValidQty || !!error || !!tickerValidationError || (type === 'buy' && isValidatingTicker)}
+                    onClick={() => isValidAmount && !error && !tickerValidationError && calculatedShares > 0 && onConfirm(calculatedShares, selectedStrategyId)}
+                    disabled={!isValidAmount || !!error || !!tickerValidationError || calculatedShares <= 0 || (type === 'buy' && isValidatingTicker)}
                     className={`w-full rounded-xl py-3.5 font-bold text-white shadow-lg transition-all hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 ${
                         type === 'buy' 
                         ? (theme === 'dark' ? 'bg-neonGreen text-black shadow-neonGreen/20 hover:bg-neonGreen/90' : 'bg-green-600 shadow-green-600/20 hover:bg-green-700')

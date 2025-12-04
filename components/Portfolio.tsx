@@ -236,7 +236,9 @@ export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holding
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="font-medium text-gray-900 dark:text-white">{holding.quantity} Shares</div>
+                    <div className="font-medium text-gray-900 dark:text-white">
+                      {holding.symbol.includes('-USD') ? holding.quantity.toFixed(3) : holding.quantity} Shares
+                    </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">Avg: ${holding.avgPrice.toFixed(2)}</div>
                   </td>
                   <td className="px-6 py-4 text-right">

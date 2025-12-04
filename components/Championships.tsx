@@ -73,24 +73,24 @@ const ChampionshipCard: React.FC<ChampionshipCardProps> = ({
                 bgColor = 'bg-blue-500/20';
                 textColor = 'text-blue-400';
                 icon = <Clock size={12}/>;
-                text = 'In Sospeso';
+                text = 'Pending';
                 break;
             case 'active':
                 bgColor = 'bg-neonGreen/20';
                 textColor = 'text-neonGreen';
                 icon = <Play size={12}/>;
-                text = 'Attivo';
+                text = 'Active';
                 break;
             case 'finished':
                 bgColor = 'bg-purple-500/20';
                 textColor = 'text-purple-400';
                 icon = <CheckCircle size={12}/>;
-                text = 'Terminato';
+                text = 'Finished';
                 break;
             default:
                 bgColor = 'bg-gray-500/20';
                 textColor = 'text-gray-400';
-                text = 'Sconosciuto';
+                text = 'Unknown';
         }
         return (
             <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${bgColor} ${textColor}`}>
@@ -109,17 +109,17 @@ const ChampionshipCard: React.FC<ChampionshipCardProps> = ({
                 <div className="space-y-2">
                     <div className={`w-full py-3 px-4 rounded-xl text-center ${theme === 'dark' ? 'bg-orange-500/10 border border-orange-500/30' : 'bg-orange-50 border border-orange-200'}`}>
                         <p className={`text-sm font-medium ${theme === 'dark' ? 'text-orange-300' : 'text-orange-700'}`}>
-                            ⚠️ Sei iscritto come admin ma non puoi accedere al portfolio.
+                            ⚠️ You are enrolled as admin but cannot access the portfolio.
                         </p>
                         <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-orange-400/70' : 'text-orange-600/70'}`}>
-                            Gli amministratori possono solo gestire i campionati.
+                            Administrators can only manage championships.
                         </p>
                     </div>
                     <button 
                         onClick={() => onAdminLeave(championship)}
                         className={`w-full py-2 rounded-xl text-sm font-medium transition-colors ${theme === 'dark' ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
                     >
-                        Rimuovi Iscrizione Admin
+                        Remove Admin Enrollment
                     </button>
                 </div>
             );
@@ -130,10 +130,10 @@ const ChampionshipCard: React.FC<ChampionshipCardProps> = ({
             return (
                 <div className={`w-full py-3 px-4 rounded-xl text-center ${theme === 'dark' ? 'bg-blue-500/10 border border-blue-500/30' : 'bg-blue-50 border border-blue-200'}`}>
                     <p className={`text-sm font-medium ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
-                        👨‍💼 Come amministratore, non puoi partecipare ai campionati.
+                        👨‍💼 As an administrator, you cannot participate in championships.
                     </p>
                     <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-blue-400/70' : 'text-blue-600/70'}`}>
-                        Gestisci questo campionato dall'Admin Panel.
+                        Manage this championship from the Admin Panel.
                     </p>
                 </div>
             );
@@ -147,7 +147,7 @@ const ChampionshipCard: React.FC<ChampionshipCardProps> = ({
                         onClick={() => onPayEnrollment(championship)} // NEW: Trigger payment flow
                         className={`w-full py-3 rounded-xl font-bold transition-all ${theme === 'dark' ? 'bg-neonGreen text-black hover:bg-neonGreen/90' : 'bg-black text-white hover:bg-gray-800'}`}
                     >
-                        <CreditCard size={16} className="inline-block mr-2"/> Paga e Iscriviti
+                        <CreditCard size={16} className="inline-block mr-2"/> Pay and Enroll
                     </button>
                 );
             } else {
@@ -156,7 +156,7 @@ const ChampionshipCard: React.FC<ChampionshipCardProps> = ({
                         onClick={() => onJoin(championship)}
                         className={`w-full py-3 rounded-xl font-bold transition-all ${theme === 'dark' ? 'bg-neonGreen text-black hover:bg-neonGreen/90' : 'bg-black text-white hover:bg-gray-800'}`}
                     >
-                        Iscriviti al Campionato
+                        Join Championship
                     </button>
                 );
             }
@@ -168,7 +168,7 @@ const ChampionshipCard: React.FC<ChampionshipCardProps> = ({
                     onClick={() => onSetContext(championship)}
                     className={`w-full py-3 rounded-xl font-bold transition-all ${theme === 'dark' ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
                 >
-                    <Briefcase size={16} className="inline-block mr-1"/> Entra nel Portfolio
+                    <Briefcase size={16} className="inline-block mr-1"/> Enter Portfolio
                 </button>
             );
         } 
@@ -179,7 +179,7 @@ const ChampionshipCard: React.FC<ChampionshipCardProps> = ({
                     onClick={() => onViewLeaderboard(championship)}
                     className={`w-full py-3 rounded-xl font-bold transition-all ${theme === 'dark' ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'}`}
                 >
-                    Visualizza Classifica
+                    View Leaderboard
                 </button>
             );
         }
@@ -195,7 +195,7 @@ const ChampionshipCard: React.FC<ChampionshipCardProps> = ({
         }`}>
             {isActiveContext && (
                  <div className={`absolute -top-3 left-6 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${theme === 'dark' ? 'bg-neonGreen text-black' : 'bg-black text-white'}`}>
-                    Contesto Attuale
+                    Current Context
                 </div>
             )}
             <div className="flex justify-between items-start mb-4">
@@ -205,48 +205,40 @@ const ChampionshipCard: React.FC<ChampionshipCardProps> = ({
             <p className="text-sm text-gray-500 mb-4 flex-1">{championship.description}</p>
 
             <div className="space-y-2 text-sm mb-4">
-                {/* Data Inizio */}
+                {/* Start Date */}
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2 text-gray-400">
-                        <Calendar size={16}/> Data Inizio:
+                        <Calendar size={16}/> Start Date:
                     </div>
                     <div className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{startDate}</div>
                 </div>
 
-                {/* Data Fine */}
+                {/* End Date */}
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2 text-gray-400">
-                        <Calendar size={16}/> Data Fine:
+                        <Calendar size={16}/> End Date:
                     </div>
                     <div className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{endDate}</div>
                 </div>
 
-                {/* Cash Iniziale */}
+                {/* Starting Cash */}
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2 text-gray-400">
-                        <DollarSign size={16}/> Cash Iniziale:
+                        <DollarSign size={16}/> Starting Cash:
                     </div>
                     <div className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>${championship.starting_cash.toLocaleString()}</div>
                 </div>
                 
-                {/* Quota Iscrizione */}
+                {/* Enrollment Fee */}
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2 text-gray-400">
-                        <CreditCard size={16}/> Quota Iscrizione:
+                        <CreditCard size={16}/> Enrollment Fee:
                     </div>
                     <div className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                         {championship.enrollment_fee && championship.enrollment_fee > 0 
                             ? `$${championship.enrollment_fee.toLocaleString()}` 
-                            : 'Gratuito'}
+                            : 'Free'}
                     </div>
-                </div>
-
-                {/* Amministratore */}
-                <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2 text-gray-400">
-                        <Users size={16}/> Amministratore:
-                    </div>
-                    <div className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} truncate max-w-[180px]`}>{championship.admin_user_id}</div>
                 </div>
             </div>
 
@@ -313,7 +305,7 @@ const ChampionshipCard: React.FC<ChampionshipCardProps> = ({
                                 onClick={() => onStart(championship)}
                                 className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${theme === 'dark' ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
                             >
-                                <Play size={16} className="inline-block mr-1"/> Avvia
+                                <Play size={16} className="inline-block mr-1"/> Start
                             </button>
                         )}
                         {championship.status === 'active' && (
@@ -321,7 +313,7 @@ const ChampionshipCard: React.FC<ChampionshipCardProps> = ({
                                 onClick={() => onEnd(championship)}
                                 className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${theme === 'dark' ? 'bg-purple-500/10 text-purple-400 hover:bg-purple-500/20' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}
                             >
-                                <Pause size={16} className="inline-block mr-1"/> Termina
+                                <Pause size={16} className="inline-block mr-1"/> End
                             </button>
                         )}
                         {/* NEW: Delete Button for Admin/Owner, only if not active */}
@@ -716,7 +708,7 @@ const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onClose, ch
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className={`w-full max-w-4xl overflow-hidden rounded-2xl shadow-2xl ${theme === 'dark' ? 'bg-[#1E1E1E] border border-white/10' : 'bg-white border-gray-200'}`}>
                 <div className={`flex items-center justify-between border-b px-6 py-4 ${theme === 'dark' ? 'border-white/10' : 'border-gray-100'}`}>
-                    <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Classifica: {championship.name}</h3>
+                    <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Leaderboard: {championship.name}</h3>
                     <button onClick={onClose} className={`rounded-full p-1 transition-colors ${theme === 'dark' ? 'text-gray-400 hover:bg-white/10 hover:text-white' : 'text-gray-500 hover:bg-gray-100'}`}>
                         <X size={20} />
                     </button>
@@ -739,12 +731,12 @@ const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onClose, ch
                             <table className="w-full text-left text-sm">
                                 <thead className={`border-b ${theme === 'dark' ? 'border-white/5 bg-white/5 text-gray-400' : 'border-gray-100 bg-gray-50 text-gray-500'}`}>
                                     <tr>
-                                        <th className="px-4 py-2 font-medium whitespace-nowrap">Classifica</th>
-                                        <th className="px-4 py-2 font-medium whitespace-nowrap">Partecipante</th>
-                                        <th className="px-4 py-2 font-medium text-right whitespace-nowrap">Patrimonio Netto</th>
-                                        <th className="px-4 py-2 font-medium text-right whitespace-nowrap">Ritorno Totale</th>
-                                        <th className="px-4 py-2 font-medium text-right whitespace-nowrap">Ritorno %</th>
-                                        <th className="px-4 py-2 font-medium text-right whitespace-nowrap">Valore Assets</th>
+                                        <th className="px-4 py-2 font-medium whitespace-nowrap">Rank</th>
+                                        <th className="px-4 py-2 font-medium whitespace-nowrap">Participant</th>
+                                        <th className="px-4 py-2 font-medium text-right whitespace-nowrap">Net Worth</th>
+                                        <th className="px-4 py-2 font-medium text-right whitespace-nowrap">Total Return</th>
+                                        <th className="px-4 py-2 font-medium text-right whitespace-nowrap">Return %</th>
+                                        <th className="px-4 py-2 font-medium text-right whitespace-nowrap">Asset Value</th>
                                         <th className="px-4 py-2 font-medium text-right whitespace-nowrap">Trades</th>
                                     </tr>
                                 </thead>
@@ -756,19 +748,19 @@ const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onClose, ch
                                             <td className="px-4 py-2 font-semibold">{entry.rank}</td>
                                             <td className="px-4 py-2 whitespace-nowrap">{entry.user_name}</td>
                                             <td className={`px-4 py-2 text-right font-bold ${entry.totalNetWorth >= championship.starting_cash ? (theme === 'dark' ? 'text-neonGreen' : 'text-green-700') : (theme === 'dark' ? 'text-mutedRed' : 'text-red-700')}`}>
-                                                ${entry.totalNetWorth.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                ${entry.totalNetWorth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </td>
                                             <td className={`px-4 py-2 text-right ${isReturnPositive ? (theme === 'dark' ? 'text-neonGreen' : 'text-green-700') : (theme === 'dark' ? 'text-mutedRed' : 'text-red-700')}`}>
                                                 <div className="flex items-center justify-end gap-1">
                                                     {isReturnPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                                                    {isReturnPositive ? '+' : ''}${entry.totalReturn.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                    {isReturnPositive ? '+' : ''}${entry.totalReturn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </div>
                                             </td>
                                             <td className={`px-4 py-2 text-right ${isReturnPositive ? (theme === 'dark' ? 'text-neonGreen' : 'text-green-700') : (theme === 'dark' ? 'text-mutedRed' : 'text-red-700')}`}>
                                                 {isReturnPositive ? '+' : ''}{entry.returnPercentage.toFixed(2)}%
                                             </td>
                                             <td className="px-4 py-2 text-right">
-                                                ${entry.totalAssetValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                ${entry.totalAssetValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </td>
                                             <td className="px-4 py-2 text-right">
                                                 {entry.totalTrades}
@@ -808,7 +800,7 @@ const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onClose, ch
                                     </div>
                                 </div>
                                 <div className={`p-4 rounded-xl ${theme === 'dark' ? 'bg-black/20' : 'bg-white/50'}`}>
-                                    <div className="text-xs text-gray-400 mb-1">Quota x Partecipante</div>
+                                    <div className="text-xs text-gray-400 mb-1">Entry Fee per Participant</div>
                                     <div className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                                         ${championship.enrollment_fee.toLocaleString()}
                                     </div>
@@ -1645,9 +1637,9 @@ export const Championships: React.FC<ChampionshipsProps> = ({ theme, currentUser
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Campionati di Trading</h2>
+                <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Trading Championships</h2>
                 <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Partecipa a campionati di trading virtuali, competi con altri utenti e scala le classifiche!
+                    Join virtual trading championships, compete with other users and climb the leaderboards!
                 </p>
             </div>
             {currentUser.is_admin && (
@@ -1655,7 +1647,7 @@ export const Championships: React.FC<ChampionshipsProps> = ({ theme, currentUser
                     onClick={() => setIsCreateModalOpen(true)}
                     className={`flex items-center gap-2 rounded-xl px-4 py-2 font-bold transition-all ${theme === 'dark' ? 'bg-neonGreen text-black hover:bg-neonGreen/90' : 'bg-black text-white hover:bg-gray-800'}`}
                 >
-                    <Plus size={18}/> Crea Nuovo Campionato
+                    <Plus size={18}/> Create New Championship
                 </button>
             )}
         </div>
@@ -1675,7 +1667,7 @@ export const Championships: React.FC<ChampionshipsProps> = ({ theme, currentUser
                 {/* My Championships - User is participating */}
                 {myChampionships.length > 0 && (
                     <div>
-                        <h3 className={`text-xl font-bold mb-4 ${theme === 'dark' ? 'text-neonGreen' : 'text-green-700'}`}>I Miei Campionati <span className="text-gray-500 text-sm">({myChampionships.length})</span></h3>
+                        <h3 className={`text-xl font-bold mb-4 ${theme === 'dark' ? 'text-neonGreen' : 'text-green-700'}`}>My Championships <span className="text-gray-500 text-sm">({myChampionships.length})</span></h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {myChampionships.map(champ => (
                                 <ChampionshipCard
@@ -1703,7 +1695,7 @@ export const Championships: React.FC<ChampionshipsProps> = ({ theme, currentUser
                 {/* Available Championships - User can join */}
                 {availableChampionships.length > 0 && (
                     <div>
-                        <h3 className={`text-xl font-bold mb-4 ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>Campionati Disponibili <span className="text-gray-500 text-sm">({availableChampionships.length})</span></h3>
+                        <h3 className={`text-xl font-bold mb-4 ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>Available Championships <span className="text-gray-500 text-sm">({availableChampionships.length})</span></h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {availableChampionships.map(champ => (
                                 <ChampionshipCard
@@ -1738,7 +1730,7 @@ export const Championships: React.FC<ChampionshipsProps> = ({ theme, currentUser
                 {/* Finished Championships */}
                 {finishedChampionships.length > 0 && (
                     <div>
-                        <h3 className={`text-xl font-bold mb-4 ${theme === 'dark' ? 'text-purple-300' : 'text-purple-700'}`}>Campionati Terminati <span className="text-gray-500 text-sm">({finishedChampionships.length})</span></h3>
+                        <h3 className={`text-xl font-bold mb-4 ${theme === 'dark' ? 'text-purple-300' : 'text-purple-700'}`}>Finished Championships <span className="text-gray-500 text-sm">({finishedChampionships.length})</span></h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {finishedChampionships.map(champ => (
                                 <ChampionshipCard
