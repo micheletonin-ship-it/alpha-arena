@@ -10,6 +10,7 @@ import { Scanner } from './Scanner';
 import { ChatBot } from './components/ChatBot';
 import { Login } from './components/Login';
 import { Welcome } from './components/Welcome';
+import { LandingMobile } from './components/LandingMobile';
 import { TradeModal } from './components/TradeModal';
 import { Activity } from './components/Activity';
 import { Statistics } from './components/Statistics';
@@ -86,6 +87,10 @@ const AppContent: React.FC = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   
+  // Mobile Landing State
+  const [mobileView, setMobileView] = useState<'landing' | 'login' | 'signup'>('landing');
+  const [isMobile, setIsMobile] = useState(false);
+  
   // Championship State
   const [currentChampionshipId, setCurrentChampionshipId] = useState<string | undefined>(undefined); // UPDATED: undefined if no championship
   const [currentChampionshipName, setCurrentChampionshipName] = useState<string | undefined>(undefined); // UPDATED: undefined if no championship
@@ -140,6 +145,18 @@ const AppContent: React.FC = () => {
   useEffect(() => { watchedSymbolsRef.current = watchedSymbols; }, [watchedSymbols]);
   useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]); // NEW
   useEffect(() => { currentChampionshipIdRef.current = currentChampionshipId; }, [currentChampionshipId]); // NEW
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Initialize simulated DB & Auto-Login
   useEffect(() => {
@@ -1026,6 +1043,23 @@ const AppContent: React.FC = () => {
         </div>
       );
     }
+    
+    // Mobile: Show Landing → Login/Signup flow
+    if (isMobile) {
+      if (mobileView === 'landing') {
+        return (
+          <LandingMobile
+            theme={theme}
+            onSignUp={() => setMobileView('signup')}
+            onLogin={() => setMobileView('login')}
+          />
+        );
+      }
+      // Show Login component for both login and signup (it handles switching internally)
+      return <Login onLogin={handleLogin} theme={theme} isLoading={isLoadingAuth} />;
+    }
+    
+    // Desktop: Show normal Login with split view
     return <Login onLogin={handleLogin} theme={theme} isLoading={isLoadingAuth} />;
   }
 
