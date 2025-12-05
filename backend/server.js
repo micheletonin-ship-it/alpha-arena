@@ -5,6 +5,7 @@ const Stripe = require('stripe');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 const { savePayment, joinChampionship, getChampionshipById } = require('./database');
+const { decrypt } = require('./security');
 
 // Initialize Supabase Admin Client (with Service Role Key for admin operations)
 let supabaseAdmin = null;
@@ -1120,12 +1121,20 @@ app.post('/api/scanner/run/:championshipId', async (req, res) => {
       });
     }
 
-    // Decrypt the admin's OpenAI key (assuming it's encrypted in the DB)
-    // For now, we'll assume it's stored encrypted and needs decryption
-    // If it's plain text, use it directly
-    const openaiKey = adminProfile.openai_key;
+    // Decrypt the admin's OpenAI key (it's stored encrypted in the DB)
+    const encryptedKey = adminProfile.openai_key;
+    const openaiKey = decrypt(encryptedKey);
 
-    console.log('[Scanner Run] Admin OpenAI key found, starting scan...');
+    if (!openaiKey || !openaiKey.startsWith('sk-')) {
+      console.error('[Scanner Run] Invalid OpenAI key after decryption');
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid OpenAI key',
+        message: 'The decrypted OpenAI key appears to be invalid. Please reconfigure your key in Settings.'
+      });
+    }
+
+    console.log('[Scanner Run] Admin OpenAI key decrypted successfully, starting scan...');
 
     // Get championship details to get allowed tickers
     const { data: championship, error: champError } = await supabaseAdmin
