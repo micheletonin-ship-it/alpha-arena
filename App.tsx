@@ -62,10 +62,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       // You can render any custom fallback UI
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-background text-red-400 p-8 text-center">
-          <h1 className="text-3xl font-bold mb-4">Oops! Si è verificato un errore.</h1>
-          <p className="text-lg mb-4">Qualcosa è andato storto. Prova a ricaricare la pagina.</p>
+          <h1 className="text-3xl font-bold mb-4">Oops! An error occurred.</h1>
+          <p className="text-lg mb-4">Something went wrong. Try reloading the page.</p>
           <details className="text-sm text-red-200 bg-red-800/20 p-4 rounded-lg overflow-auto max-w-lg">
-            <summary className="cursor-pointer">Dettagli dell'errore</summary>
+            <summary className="cursor-pointer">Error Details</summary>
             <pre className="mt-2 text-left whitespace-pre-wrap">
               {this.state.error && this.state.error.toString()}
               <br />
@@ -221,10 +221,21 @@ const AppContent: React.FC = () => {
       console.log('Championship ID:', championshipId);
       console.log('Is already scanning:', isScanningGlobalRef.current);
       
-      // Don't run if market data or strategies aren't loaded, or if a scan is already in progress
-      if (currentStrategies.length === 0 || isScanningGlobalRef.current || currentMarketData.length === 0) {
-          console.log('SCAN ABORTED - Missing data or already scanning');
+      // Don't run if a scan is already in progress
+      if (isScanningGlobalRef.current) {
+          console.log('SCAN ABORTED - Scan already in progress');
           return;
+      }
+
+      // If market data is empty, log warning but continue with fallback logic
+      if (currentMarketData.length === 0) {
+          console.warn('⚠️ SCANNER WARNING: Market data is empty. This could be due to:');
+          console.warn('  1. Backend not running (check: npm run dev in backend folder)');
+          console.warn('  2. Alpaca API credentials missing or invalid');
+          console.warn('  3. Network/CORS issues between frontend and backend');
+          console.warn('  4. VITE_BACKEND_URL not configured in .env.local');
+          console.warn('Scanner will attempt to use fallback/cached data...');
+          // Don't return - let scanMarketOpportunities handle fallback
       }
 
       isScanningGlobalRef.current = true; // Set flag to prevent multiple simultaneous scans
@@ -259,7 +270,7 @@ const AppContent: React.FC = () => {
 
 
           if (shouldRunNewScan && isPastScanTime) {
-              console.log(`Global Background Scanner: Initiating daily market scan...`);
+              console.log(`✅ Global Background Scanner: Initiating daily market scan...`);
               // Fix: `scanMarketOpportunities` now returns a complete `ScanReport`
               const scanReport: ScanReport = await scanMarketOpportunities(currentMarketData, currentStrategies, championshipId);
               
@@ -270,7 +281,10 @@ const AppContent: React.FC = () => {
 
               // Always save the report, even if it has errors or no results, to record the attempt and timestamp
               await db.saveGlobalScanReport(scanReport, championshipId); // Pass championshipId
-              console.log(`Global Background Scanner: Found ${newScanResults.length} opportunities. Source: ${newScanSource}.`);
+              console.log(`✅ Global Background Scanner: Found ${newScanResults.length} opportunities. Source: ${newScanSource}.`);
+              if (newScanAiErrorMessage) {
+                  console.warn(`⚠️ Scanner completed with warnings: ${newScanAiErrorMessage}`);
+              }
               
           } else {
               // If already scanned today past 8 AM, or it's before 8 AM, just load cached results
@@ -278,10 +292,10 @@ const AppContent: React.FC = () => {
               newScanSource = cachedScan?.source || 'Heuristic'; 
               newScanAiErrorMessage = cachedScan?.aiErrorMessage || null;
               newScanTimestamp = cachedScan?.timestamp || Date.now();
-              console.log("Global Background Scanner: Loaded cached results for today (or waiting for 8 AM).");
+              console.log(`📦 Global Background Scanner: Loaded ${newScanResults.length} cached results.`);
           }
       } catch (e: any) {
-          console.error("Global background scanner daily check error", e);
+          console.error("❌ Global background scanner error:", e);
           newScanAiErrorMessage = e.message || "Unknown error during global background scan.";
           
           // Attempt to load any existing cached results even on error
@@ -290,6 +304,7 @@ const AppContent: React.FC = () => {
               newScanResults = cachedScan.results;
               newScanSource = cachedScan.source;
               newScanTimestamp = cachedScan.timestamp;
+              console.log(`📦 Loaded ${newScanResults.length} cached results after error`);
               if (newScanAiErrorMessage) {
                  // Update cached scan with current error to indicate it failed if re-attempted
                  cachedScan.aiErrorMessage = newScanAiErrorMessage; 
@@ -297,6 +312,7 @@ const AppContent: React.FC = () => {
               }
           } else {
               // If no cached results and an error occurred, set to empty/default
+              console.warn('⚠️ No cached results available, scanner will show empty state');
               newScanResults = [];
               newScanSource = 'Heuristic'; // Default to heuristic if no actual scan or cached data
               newScanTimestamp = Date.now();
@@ -612,9 +628,9 @@ const AppContent: React.FC = () => {
       
       // If credentials are missing, show a specific message
       if (errorMessage.includes('not configured')) {
-        alert("⚠️ Alpaca API non configurata\n\nPer vedere i dati live:\n1. Crea un account su alpaca.markets\n2. Ottieni le tue API keys (Paper Trading)\n3. Aggiungi VITE_ALPACA_KEY e VITE_ALPACA_SECRET al file .env.local\n4. Riavvia l'applicazione");
+        alert("⚠️ Alpaca API Not Configured\n\nTo see live data:\n1. Create an account on alpaca.markets\n2. Get your API keys (Paper Trading)\n3. Add VITE_ALPACA_KEY and VITE_ALPACA_SECRET to the .env.local file\n4. Restart the application");
       } else {
-        alert(`❌ Errore connessione Alpaca:\n${errorMessage}\n\nVerifica le tue credenziali e la connessione internet.`);
+        alert(`❌ Alpaca Connection Error:\n${errorMessage}\n\nCheck your credentials and internet connection.`);
       }
       
       setStocks([]); // Clear stocks on error
@@ -773,7 +789,7 @@ const AppContent: React.FC = () => {
       // Validate ticker is allowed in championship
       const validation = await marketService.validateTickerForChampionship(symbol, currentChampionshipId);
       if (!validation.isValid) {
-          alert(validation.message || 'Ticker non consentito in questo campionato');
+          alert(validation.message || 'Ticker not allowed in this championship');
           setSearchQuery('');
           return;
       }
@@ -912,7 +928,7 @@ const AppContent: React.FC = () => {
       // NEW: Apply trade limits for 'buy' operations
       if (tradeType === 'buy') {
           if (totalValue > MAX_TRADE_AMOUNT) {
-              alert(`Acquisto fallito: Il valore del trade (${totalValue.toLocaleString(undefined, {style: 'currency', currency: 'USD'})}) supera il limite massimo di ${MAX_TRADE_AMOUNT.toLocaleString(undefined, {style: 'currency', currency: 'USD'})} per trade.`);
+              alert(`Purchase failed: Trade value (${totalValue.toLocaleString(undefined, {style: 'currency', currency: 'USD'})}) exceeds the maximum limit of ${MAX_TRADE_AMOUNT.toLocaleString(undefined, {style: 'currency', currency: 'USD'})} per trade.`);
               return;
           }
           // Daily buy limit removed - unlimited purchases allowed
@@ -953,6 +969,54 @@ const AppContent: React.FC = () => {
       setActiveTab('settings');
   };
 
+  // NEW: Force rescan - clears cache and triggers new scan
+  const handleForceRescan = async () => {
+    try {
+      console.log('🔄 [Force Rescan] Clearing cache and triggering new scan...');
+      
+      // 1. Clear backend cache
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      await fetch(`${backendUrl}/api/scanner/cache/${currentChampionshipId}`, {
+        method: 'DELETE'
+      });
+      console.log('✅ [Force Rescan] Backend cache cleared');
+      
+      // 2. Clear frontend localStorage cache
+      const dbState = localStorage.getItem('db_state');
+      if (dbState) {
+        const state = JSON.parse(dbState);
+        // Clear scan results from state
+        if (state.scanResults) {
+          delete state.scanResults;
+          delete state.scanSource;
+          delete state.scanTimestamp;
+          localStorage.setItem('db_state', JSON.stringify(state));
+          console.log('✅ [Force Rescan] Frontend cache cleared');
+        }
+      }
+      
+      // 3. Trigger new scan
+      setIsScanning(true);
+      const scanReport = await scanMarketOpportunities(stocks, strategies, currentChampionshipId);
+      
+      // Update state with new results
+      setScanResults(scanReport.results);
+      setScanSource(scanReport.source);
+      setScanAiErrorMessage(scanReport.aiErrorMessage);
+      setLastScanTimestamp(scanReport.timestamp);
+      
+      // Save to database
+      await db.saveGlobalScanReport(scanReport, currentChampionshipId);
+      
+      console.log('✅ [Force Rescan] New scan completed!');
+      setIsScanning(false);
+      
+    } catch (error) {
+      console.error('❌ [Force Rescan] Error:', error);
+      setIsScanning(false);
+    }
+  };
+
   // NEW: Handler for Welcome Page - Join Free Championship
   const handleJoinFreeChampionship = async () => {
     if (!currentUser) return;
@@ -970,7 +1034,7 @@ const AppContent: React.FC = () => {
       
     } catch (error) {
       console.error("Error joining Welcome Cup:", error);
-      alert("Errore durante l'iscrizione al campionato gratuito. Riprova.");
+      alert("Error joining the free championship. Please try again.");
     }
   };
 
@@ -1088,13 +1152,13 @@ const AppContent: React.FC = () => {
           return (
             <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-gray-500 animate-in fade-in">
                 <Shield size={64} className="mb-4 text-gray-700 opacity-30"/>
-                <h3 className="text-xl font-bold mb-2">Accesso Amministratore</h3>
-                <p className="mb-4">Come admin, puoi solo gestire i campionati.</p>
+                <h3 className="text-xl font-bold mb-2">Administrator Access</h3>
+                <p className="mb-4">As admin, you can only manage championships.</p>
                 <button 
                     onClick={() => setActiveTab('admin-panel')}
                     className={`flex items-center gap-2 rounded-xl px-4 py-2 font-bold transition-all ${theme === 'dark' ? 'bg-neonGreen text-black hover:bg-neonGreen/90' : 'bg-black text-white hover:bg-gray-800'}`}
                 >
-                    <Shield size={18}/> Vai all'Admin Panel
+                    <Shield size={18}/> Go to Admin Panel
                 </button>
             </div>
           );
@@ -1151,14 +1215,14 @@ const AppContent: React.FC = () => {
             <div className="flex flex-col items-center justify-center h-[calc(100vh-140px)] text-gray-500 animate-in fade-in">
                 {/* Fix: Trophy icon is now imported */}
                 <Trophy size={64} className="mb-4 text-gray-700 opacity-30"/>
-                <h3 className="text-xl font-bold mb-2">Nessun Campionato Selezionato</h3>
-                <p className="mb-4">Per iniziare, unisciti o crea un campionato.</p>
+                <h3 className="text-xl font-bold mb-2">No Championship Selected</h3>
+                <p className="mb-4">To get started, join or create a championship.</p>
                 <button 
                     onClick={() => setActiveTab('championships')}
                     className={`flex items-center gap-2 rounded-xl px-4 py-2 font-bold transition-all ${theme === 'dark' ? 'bg-neonGreen text-black hover:bg-neonGreen/90' : 'bg-black text-white hover:bg-gray-800'}`}
                 >
                     {/* Fix: Trophy icon is now imported */}
-                    <Trophy size={18}/> Vai ai Campionati
+                    <Trophy size={18}/> Go to Championships
                 </button>
             </div>
           );
@@ -1171,11 +1235,11 @@ const AppContent: React.FC = () => {
                 <div className="space-y-6 animate-in fade-in zoom-in duration-300">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                      <div className={`relative overflow-hidden rounded-2xl p-6 ${theme === 'dark' ? 'bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10' : 'bg-white border border-gray-100 shadow-sm'}`}>
-                        <p className="text-sm text-gray-400">Total Volume</p>
+                        <p className="text-sm text-gray-400">Market Data</p>
                         <h3 className={`mt-2 text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                          {stocks.length > 0 ? stocks[0].volume : '--'}
+                          {stocks.length} Assets
                         </h3>
-                        <span className="text-xs text-neonGreen">Real-time Data</span>
+                        <span className="text-xs text-neonGreen">Real-time Feed</span>
                      </div>
                      <div className={`relative overflow-hidden rounded-2xl p-6 ${theme === 'dark' ? 'bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10' : 'bg-white border border-gray-100 shadow-sm'}`}>
                         <p className="text-sm text-gray-400">Buying Power</p>
@@ -1222,20 +1286,6 @@ const AppContent: React.FC = () => {
                         className={`text-xs px-2 py-1 rounded ${theme === 'dark' ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-200 hover:bg-gray-300'}`}
                       >
                           Enter
-                      </button>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <span className="hidden text-xs text-gray-500 sm:block">
-                        Updated: {lastUpdated.toLocaleTimeString()} (Every {dataProvider === 'Alpaca' ? '30s' : '60s'})
-                      </span>
-                      <button 
-                        onClick={getData} 
-                        disabled={loading}
-                        className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${theme === 'dark' ? 'bg-neonGreen/10 text-neonGreen hover:bg-neonGreen/20' : 'bg-black text-white hover:bg-gray-800'}`}
-                      >
-                        <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> 
-                        <span className="hidden sm:inline">{loading ? 'Updating...' : 'Refresh'}</span>
                       </button>
                     </div>
                   </div>

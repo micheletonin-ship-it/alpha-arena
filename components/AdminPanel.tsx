@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Theme, User, Championship, LeaderboardEntry, Stock } from '../types';
 import * as db from '../services/database';
 import * as adminService from '../services/adminService';
-import { Shield, Trophy, Users, DollarSign, TrendingUp, BarChart3, AlertCircle, Search, Filter, Play, Pause, Trash2, Eye, Download, Calendar, X, CheckCircle, Clock, UserX, UserCheck, Ban } from 'lucide-react';
+import { Shield, Trophy, Users, DollarSign, TrendingUp, BarChart3, AlertCircle, Search, Filter, Play, Pause, Trash2, Eye, Download, Calendar, X, CheckCircle, Clock, UserX, UserCheck, Ban, RefreshCw, Radar } from 'lucide-react';
 
 interface AdminPanelProps {
   theme: Theme;
@@ -224,6 +224,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, currentUser, mark
             onDeleteUser={handleDeleteUser}
           />
 
+          {/* Scanner Management */}
+          <ScannerManager
+            theme={theme}
+            championships={championships}
+            onClearCache={handleClearScannerCache}
+          />
+
           {/* Championships Manager */}
           <ChampionshipsManager
             championships={championships}
@@ -392,6 +399,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, currentUser, mark
     } catch (error) {
       console.error('Failed to delete user:', error);
       alert('Errore durante l\'eliminazione dell\'utente');
+    }
+  }
+
+  // Scanner Management Functions
+  async function handleClearScannerCache(championshipId: string) {
+    if (!confirm('Sei sicuro di voler cancellare la cache dello scanner per questo campionato? Questo forzerà un nuovo scan AI.')) return;
+    
+    try {
+      // 1. Clear backend cache
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const response = await fetch(`${backendUrl}/api/scanner/cache/${championshipId}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to clear backend cache');
+      }
+      
+      // 2. Clear frontend localStorage cache
+      const dbState = localStorage.getItem('db_state');
+      if (dbState) {
+        const state = JSON.parse(dbState);
+        if (state.scanResults) {
+          delete state.scanResults;
+          delete state.scanSource;
+          delete state.scanTimestamp;
+          localStorage.setItem('db_state', JSON.stringify(state));
+        }
+      }
+      
+      alert('✅ Cache dello scanner cancellata con successo! Il prossimo scan sarà fresco.');
+    } catch (error) {
+      console.error('Failed to clear scanner cache:', error);
+      alert('❌ Errore durante la cancellazione della cache dello scanner');
     }
   }
 
@@ -857,6 +898,175 @@ const UserManager: React.FC<UserManagerProps> = ({
         <div className="text-center py-12 text-gray-500">
           <Users size={48} className="mx-auto mb-4 opacity-20"/>
           <p>Clicca "Carica Utenti" per visualizzare tutti gli utenti registrati</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Scanner Manager Component
+interface ScannerManagerProps {
+  theme: Theme;
+  championships: Championship[];
+  onClearCache: (championshipId: string) => Promise<void>;
+}
+
+const ScannerManager: React.FC<ScannerManagerProps> = ({
+  theme,
+  championships,
+  onClearCache,
+}) => {
+  const [scannerInfo, setScannerInfo] = useState<Map<string, { lastScan: string; source: string }>>(new Map());
+  const [loadingChamps, setLoadingChamps] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    loadScannerInfo();
+  }, [championships]);
+
+  const loadScannerInfo = async () => {
+    const info = new Map<string, { lastScan: string; source: string }>();
+    
+    for (const champ of championships) {
+      try {
+        const scanReport = await db.getGlobalScanReport(champ.id);
+        if (scanReport) {
+          const lastScan = new Date(scanReport.timestamp).toLocaleString('it-IT');
+          info.set(champ.id, {
+            lastScan,
+            source: scanReport.source || 'Heuristic',
+          });
+        } else {
+          info.set(champ.id, {
+            lastScan: 'Mai eseguito',
+            source: '-',
+          });
+        }
+      } catch (error) {
+        console.error(`Failed to load scanner info for ${champ.id}:`, error);
+        info.set(champ.id, {
+          lastScan: 'Errore',
+          source: '-',
+        });
+      }
+    }
+    
+    setScannerInfo(info);
+  };
+
+  const handleClearCache = async (championshipId: string) => {
+    setLoadingChamps(prev => new Set(prev).add(championshipId));
+    try {
+      await onClearCache(championshipId);
+      await loadScannerInfo(); // Reload info after clearing
+    } finally {
+      setLoadingChamps(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(championshipId);
+        return newSet;
+      });
+    }
+  };
+
+  return (
+    <div className={`rounded-2xl border p-6 ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'}`}>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <Radar size={20} className="text-cyan-400"/>
+          <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            Scanner Management
+          </h3>
+        </div>
+        <button
+          onClick={loadScannerInfo}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${theme === 'dark' ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-900'}`}
+        >
+          <RefreshCw size={14}/> Aggiorna
+        </button>
+      </div>
+
+      <div className={`mb-4 p-3 rounded-lg ${theme === 'dark' ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-200'}`}>
+        <p className="text-sm text-blue-400">
+          💡 <strong>Info:</strong> Gli utenti NON possono forzare un rescan. Solo tu come admin puoi cancellare la cache dello scanner per forzare un nuovo scan AI.
+        </p>
+      </div>
+
+      {championships.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          <Radar size={48} className="mx-auto mb-4 opacity-20"/>
+          <p>Nessun campionato disponibile</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className={`border-b ${theme === 'dark' ? 'border-white/5 text-gray-400' : 'border-gray-200 text-gray-600'}`}>
+              <tr>
+                <th className="px-4 py-3 text-left font-medium">Campionato</th>
+                <th className="px-4 py-3 text-left font-medium">Ultimo Scan</th>
+                <th className="px-4 py-3 text-left font-medium">Source</th>
+                <th className="px-4 py-3 text-center font-medium">Azioni</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y ${theme === 'dark' ? 'divide-white/5' : 'divide-gray-100'}`}>
+              {championships.map(champ => {
+                const info = scannerInfo.get(champ.id);
+                const isLoading = loadingChamps.has(champ.id);
+                
+                return (
+                  <tr key={champ.id} className={`transition-colors ${theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-50'}`}>
+                    <td className="px-4 py-3">
+                      <p className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        {champ.name}
+                      </p>
+                      <p className="text-xs text-gray-500">{champ.id}</p>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-sm">
+                      {info?.lastScan || 'Caricamento...'}
+                    </td>
+                    <td className="px-4 py-3">
+                      {info?.source === 'AI' ? (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold bg-purple-500/20 text-purple-400">
+                          <Radar size={10}/> AI
+                        </span>
+                      ) : info?.source === 'Heuristic' ? (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold bg-gray-500/20 text-gray-400">
+                          Heuristic
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-500">{info?.source || '-'}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center">
+                        <button
+                          onClick={() => handleClearCache(champ.id)}
+                          disabled={isLoading}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                            isLoading
+                              ? 'opacity-50 cursor-not-allowed'
+                              : theme === 'dark' 
+                                ? 'bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400' 
+                                : 'bg-cyan-100 hover:bg-cyan-200 text-cyan-700'
+                          }`}
+                          title="Cancella Cache Scanner"
+                        >
+                          {isLoading ? (
+                            <>
+                              <div className="h-3 w-3 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent"/>
+                              Cancellazione...
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw size={12}/> Clear Cache
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

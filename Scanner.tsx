@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Theme, ScanResult, Stock, Strategy } from './types';
-import { Radar, Shield, TrendingUp, Zap, ArrowRight, ExternalLink, DollarSign, AlertCircle, Clock, LineChart, Activity, Wallet, Lightbulb, Plus, Filter } from 'lucide-react';
+import { Radar, Shield, TrendingUp, Zap, ArrowRight, ExternalLink, DollarSign, AlertCircle, Clock, LineChart, Activity, Wallet, Lightbulb, Plus, Filter, RefreshCw } from 'lucide-react';
 import { filterAllowedTickers } from './services/marketService';
 import { getChampionshipById } from './services/database';
 
@@ -19,6 +19,7 @@ interface ScannerProps {
   isScanning: boolean;
   onNavigateToSettings: () => void; // New prop for navigating to settings
   championshipId: string; // UPDATED: now mandatory string
+  onForceRescan?: () => Promise<void>; // NEW: Callback to force rescan
 }
 
 export const Scanner: React.FC<ScannerProps> = ({ 
@@ -33,6 +34,7 @@ export const Scanner: React.FC<ScannerProps> = ({
   isScanning,
   onNavigateToSettings, // Destructure new prop
   championshipId, // NEW
+  onForceRescan, // NEW
 }) => {
   // NEW: State for filtered results and championship info
   const [filteredScanResults, setFilteredScanResults] = useState<ScanResult[]>(scanResults);
@@ -123,8 +125,8 @@ export const Scanner: React.FC<ScannerProps> = ({
                       <p className="text-xs text-gray-500">{stockInfo.name}</p>
                   </div>
                   <div className={`text-right font-mono ${stockInfo.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      <div className="text-lg font-bold">${stockInfo.price.toFixed(2)}</div>
-                      <div className="text-xs">{stockInfo.changePercent > 0 ? '+' : ''}{stockInfo.changePercent.toFixed(2)}%</div>
+                      <div className="text-lg font-bold">${stockInfo.price.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                      <div className="text-xs">{stockInfo.changePercent > 0 ? '+' : ''}{stockInfo.changePercent.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</div>
                   </div>
               </div>
               
@@ -156,7 +158,7 @@ export const Scanner: React.FC<ScannerProps> = ({
                 <div className="flex items-center gap-2 mt-1">
                     <Radar size={16} className="text-blue-400"/>
                     <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                        Opportunità analizzate per il portafoglio del campionato
+                        Analyzed opportunities for championship portfolio
                     </span>
                 </div>
             </div>
@@ -173,10 +175,10 @@ export const Scanner: React.FC<ScannerProps> = ({
                 <Filter size={20} className="text-blue-400 mt-0.5" />
                 <div>
                     <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                        🎯 Filtro Ticker Attivo
+                        🎯 Ticker Filter Active
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                        Questo campionato limita il trading a <span className="font-semibold text-blue-400">{allowedTickersCount} ticker selezionati</span>. Solo questi ticker appariranno nello scanner e saranno tradabili.
+                        This championship restricts trading to <span className="font-semibold text-blue-400">{allowedTickersCount} selected tickers</span>. Only these tickers will appear in the scanner and be tradable.
                     </p>
                 </div>
             </div>
@@ -199,8 +201,8 @@ export const Scanner: React.FC<ScannerProps> = ({
         {scanResults.length === 0 && !isScanning ? (
             <div className={`p-8 rounded-2xl border border-dashed ${theme === 'dark' ? 'border-white/10 text-gray-500' : 'border-gray-300 text-gray-400'}`}>
                 <Radar size={48} className="mx-auto mb-4 opacity-20"/>
-                <p className="text-center">Nessuna opportunità di trading trovata al momento.</p>
-                <p className="mt-2 text-center text-xs">Il prossimo scan automatico è previsto per le 08:00 AM.</p>
+                <p className="text-center">No trading opportunities found at the moment.</p>
+                <p className="mt-2 text-center text-xs">The next automatic scan is scheduled for 08:00 AM.</p>
             </div>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -210,7 +212,7 @@ export const Scanner: React.FC<ScannerProps> = ({
                     </h3>
                     {getColumnItems('strat_conservative').map(renderCard)}
                     {getColumnItems('strat_conservative').length === 0 && !isScanning && (
-                        <p className="text-sm text-gray-500 p-4 rounded-xl border border-dashed dark:border-white/10">Nessuna opportunità conservativa.</p>
+                        <p className="text-sm text-gray-500 p-4 rounded-xl border border-dashed dark:border-white/10">No conservative opportunities.</p>
                     )}
                 </div>
                 <div>
@@ -219,7 +221,7 @@ export const Scanner: React.FC<ScannerProps> = ({
                     </h3>
                     {getColumnItems('strat_balanced').map(renderCard)}
                     {getColumnItems('strat_balanced').length === 0 && !isScanning && (
-                        <p className="text-sm text-gray-500 p-4 rounded-xl border border-dashed dark:border-white/10">Nessuna opportunità bilanciata.</p>
+                        <p className="text-sm text-gray-500 p-4 rounded-xl border border-dashed dark:border-white/10">No balanced opportunities.</p>
                     )}
                 </div>
                 <div>
@@ -228,7 +230,7 @@ export const Scanner: React.FC<ScannerProps> = ({
                     </h3>
                     {getColumnItems('strat_aggressive').map(renderCard)}
                     {getColumnItems('strat_aggressive').length === 0 && !isScanning && (
-                        <p className="text-sm text-gray-500 p-4 rounded-xl border border-dashed dark:border-white/10">Nessuna opportunità aggressiva.</p>
+                        <p className="text-sm text-gray-500 p-4 rounded-xl border border-dashed dark:border-white/10">No aggressive opportunities.</p>
                     )}
                 </div>
             </div>

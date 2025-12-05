@@ -139,11 +139,11 @@ export const StockCard: React.FC<StockCardProps> = ({ stock, theme = 'dark', onT
       {/* 3. Price & Stats */}
       <div className="flex w-32 flex-col items-end justify-center">
          <span className={`font-mono font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-            ${stock.price.toFixed(2)}
+            ${stock.price.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
          </span>
          <div className={`flex items-center gap-1 text-xs font-semibold ${isPositive ? 'text-green-500 dark:text-neonGreen' : 'text-red-500 dark:text-mutedRed'}`}>
             {isPositive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-            {isPositive ? '+' : ''}{stock.changePercent}%
+            {isPositive ? '+' : ''}{stock.changePercent.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
          </div>
       </div>
 

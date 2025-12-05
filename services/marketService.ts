@@ -371,20 +371,29 @@ const generateHeuristicScanResults = (marketData: Stock[], strategies: Strategy[
         'SBUX', 'NKE', 'PYPL', 'CRM', 'CSCO' 
     ];
 
-    // DEBUG: Log what we're working with
-    console.log('=== SCANNER DEBUG ===');
-    console.log('Scan candidates:', scanCandidates);
-    console.log('Market data symbols:', marketData.map(s => s.symbol));
-    console.log('Market data length:', marketData.length);
+    console.log('=== HEURISTIC SCANNER ===');
+    console.log('📊 Scan candidates:', scanCandidates.length, 'tickers');
+    console.log('📈 Market data available:', marketData.length, 'stocks');
 
     // Fix: Use case-insensitive matching for ticker comparison
     const scanCandidatesUpper = scanCandidates.map(s => s.toUpperCase());
-    const availableStocks = marketData.length > 0 
-        ? marketData.filter(s => scanCandidatesUpper.includes(s.symbol.toUpperCase())) 
-        : generateMockData(scanCandidates);
     
-    console.log('Available stocks after filter:', availableStocks.map(s => s.symbol));
-    console.log('Available stocks count:', availableStocks.length);
+    // IMPROVED FALLBACK: If market data is empty or insufficient, use mock data
+    let availableStocks: Stock[];
+    if (marketData.length === 0) {
+        console.warn('⚠️ No market data available - generating mock data for scanner');
+        availableStocks = generateMockData(scanCandidates);
+    } else {
+        availableStocks = marketData.filter(s => scanCandidatesUpper.includes(s.symbol.toUpperCase()));
+        
+        // If filtering resulted in no stocks, use mock data as fallback
+        if (availableStocks.length === 0) {
+            console.warn('⚠️ No matching stocks after filtering - generating mock data');
+            availableStocks = generateMockData(scanCandidates.slice(0, 10)); // Use a subset
+        }
+    }
+    
+    console.log('✅ Available stocks for analysis:', availableStocks.length);
     const effectiveStrategies = strategies.length > 0 ? strategies.filter(s => ['strat_conservative', 'strat_balanced', 'strat_aggressive'].includes(s.id)) : [ // Use a minimal set of system strategies if none are provided
         { id: 'strat_conservative', name: 'Conservative Guard', description: '', stopLossPercentage: 3, takeProfitTiers: [] },
         { id: 'strat_balanced', name: 'Balanced Growth', description: '', stopLossPercentage: 5, takeProfitTiers: [] },
@@ -442,6 +451,7 @@ export const scanMarketOpportunities = async (marketData: Stock[], strategies: S
 
     // Get allowed tickers from championship if ticker restrictions are enabled
     let allowedTickers: string[] | undefined = undefined;
+    let tickersToAnalyze: string[] = [];
     
     try {
         const championship = await getChampionshipById(championshipId);
@@ -451,24 +461,79 @@ export const scanMarketOpportunities = async (marketData: Stock[], strategies: S
         
         if (championship?.ticker_restriction_enabled && championship.allowed_tickers) {
             allowedTickers = championship.allowed_tickers;
+            tickersToAnalyze = championship.allowed_tickers;
             console.log(`Scanner: Using ${allowedTickers.length} championship-allowed tickers for scan:`, allowedTickers);
         } else {
             console.log('Scanner: No ticker restrictions, using default scan candidates');
+            // Use default scan candidates if no championship restrictions
+            tickersToAnalyze = marketData.map(s => s.symbol);
         }
     } catch (error) {
         console.error("Scanner: Error fetching championship tickers, using default scan candidates", error);
+        tickersToAnalyze = marketData.map(s => s.symbol);
     }
 
-    // The scanner will now ALWAYS run in heuristic mode.
-    // AI-powered analysis is explicitly disabled for this feature.
-    return {
-        results: generateHeuristicScanResults(marketData, strategies, allowedTickers),
-        source: 'Heuristic', // Always 'Heuristic'
-        timestamp: Date.now(),
-        aiErrorMessage: null, // No AI error as AI is not attempted
-        lastScanDuration: Date.now() - scanStartTime,
-        championshipId: championshipId, // ADDED: Include championshipId in the returned ScanReport
-    };
+    // NEW: Try backend AI analysis first
+    try {
+        console.log('🤖 [Scanner] Calling backend AI endpoint...');
+        console.log('📍 [Scanner] Backend URL:', import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001');
+        console.log('🎯 [Scanner] Championship ID:', championshipId);
+        console.log('📊 [Scanner] Tickers to analyze:', tickersToAnalyze);
+        console.log('💹 [Scanner] Market data count:', marketData.length);
+        
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+        const requestBody = {
+            championshipId,
+            tickers: tickersToAnalyze,
+            marketData: marketData.filter(s => tickersToAnalyze.includes(s.symbol))
+        };
+        
+        console.log('📤 [Scanner] Request body:', JSON.stringify(requestBody, null, 2));
+        
+        const response = await fetch(`${backendUrl}/api/scanner/analyze`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        console.log('📥 [Scanner] Response status:', response.status, response.statusText);
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('✅ [Scanner] Backend AI analysis successful!');
+            console.log('📋 [Scanner] Results:', data.results?.length || 0, 'opportunities');
+            console.log('🎨 [Scanner] Source:', data.source);
+            console.log('💾 [Scanner] Cached:', data.cached);
+            
+            return {
+                results: data.results || [],
+                source: 'AI',
+                timestamp: data.timestamp || Date.now(),
+                aiErrorMessage: null,
+                lastScanDuration: Date.now() - scanStartTime,
+                championshipId: championshipId,
+            };
+        } else {
+            const errorData = await response.json();
+            console.error('❌ [Scanner] Backend AI failed:', errorData);
+            throw new Error(errorData.message || 'Backend AI analysis failed');
+        }
+    } catch (aiError: any) {
+        console.error('⚠️ [Scanner] AI analysis error, falling back to heuristic:', aiError.message);
+        console.error('📚 [Scanner] Error stack:', aiError.stack);
+        
+        // Fallback to heuristic
+        return {
+            results: generateHeuristicScanResults(marketData, strategies, allowedTickers),
+            source: 'Heuristic',
+            timestamp: Date.now(),
+            aiErrorMessage: aiError.message || 'AI service unavailable',
+            lastScanDuration: Date.now() - scanStartTime,
+            championshipId: championshipId,
+        };
+    }
 };
 
 

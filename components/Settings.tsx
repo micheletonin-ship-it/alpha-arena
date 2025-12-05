@@ -320,36 +320,9 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme, user, on
          {/* <button onClick={handleOpenEditProfile} ...>Edit Profile</button> */}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-         {/* Navigation Sidebar */}
-         <div className="md:col-span-1">
-            <nav className="space-y-1">
-               {/* Simplified Nav items, can be extended to use state for active section */}
-               {['Cloud Sync', 'API Configuration', 'AI Brain', 'Trading Agent', 'Stripe Integration', 'Appearance', 'Notifications'].map((item, idx) => (
-                  <button 
-                    key={item}
-                    className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
-                       idx === 0
-                       ? (theme === 'dark' ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-900')
-                       : (theme === 'dark' ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900')
-                    }`}
-                  >
-                     <span>{item}</span>
-                     {idx === 0 && <ChevronRight size={16} />}
-                  </button>
-               ))}
-               <div className="my-4 h-px bg-gray-200 dark:bg-white/10"></div>
-               <button 
-                 onClick={onLogout}
-                 className="flex w-full items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-red-500 transition-colors hover:bg-red-500/10"
-                >
-                  <LogOut size={18} /> Sign Out
-               </button>
-            </nav>
-         </div>
-
+      <div>
          {/* Main Settings Form */}
-         <div className="md:col-span-2">
+         <div>
             
             {/* 1. CLOUD SYNC */}
             <Section title="Cloud Synchronization" theme={theme}>

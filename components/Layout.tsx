@@ -97,7 +97,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, toggleTheme, ac
           ))}
         </nav>
 
-        <div className="p-4">
+        <div className="p-4 space-y-2">
+          <button
+            onClick={onLogout}
+            className={`flex w-full items-center justify-center gap-2 rounded-xl p-3 text-sm font-medium transition-colors bg-red-500/10 text-red-500 hover:bg-red-500/20`}
+          >
+            <LogOut size={18} /> Sign Out
+          </button>
+          
           <button
             onClick={toggleTheme}
             className={`flex w-full items-center justify-center gap-2 rounded-xl border p-3 text-sm font-medium transition-colors ${

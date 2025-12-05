@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Theme, Transaction, User } from '../types';
 import * as db from '../services/database';
 import * as marketService from '../services/marketService';
-import { ArrowUpRight, ArrowDownLeft, Clock, Trash2 } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Clock } from 'lucide-react';
 
 interface ActivityProps {
   theme: Theme;
@@ -37,13 +37,6 @@ export const Activity: React.FC<ActivityProps> = ({ theme, user, championshipId 
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  const handleClearHistory = async () => {
-      if (confirm("Are you sure you want to clear your local transaction history?")) {
-          await db.clearTransactions(user.id, championshipId); // Pass mandatory championshipId
-          await loadData(); // Reload to show empty state
-      }
-  };
 
   // Derived Performance Data
   const performanceStats = useMemo(() => {
@@ -122,33 +115,22 @@ export const Activity: React.FC<ActivityProps> = ({ theme, user, championshipId 
              </div>
         </div>
 
-        {/* Navigation Tabs with Clear Button */}
-        <div className="flex justify-between items-end border-b border-gray-200 dark:border-white/10 pb-1">
-            <div className="flex gap-2">
-                <button 
-                    onClick={() => setView('history')}
-                    className={`px-4 py-2 text-sm font-medium transition-colors relative ${view === 'history' ? (theme === 'dark' ? 'text-neonGreen' : 'text-black') : 'text-gray-500'}`}
-                >
-                    Transaction Log
-                    {view === 'history' && <div className={`absolute bottom-[-5px] left-0 w-full h-0.5 ${theme === 'dark' ? 'bg-neonGreen' : 'bg-black'}`}></div>}
-                </button>
-                <button 
-                    onClick={() => setView('performance')}
-                    className={`px-4 py-2 text-sm font-medium transition-colors relative ${view === 'performance' ? (theme === 'dark' ? 'text-neonGreen' : 'text-black') : 'text-gray-500'}`}
-                >
-                    Stock Performance
-                    {view === 'performance' && <div className={`absolute bottom-[-5px] left-0 w-full h-0.5 ${theme === 'dark' ? 'bg-neonGreen' : 'bg-black'}`}></div>}
-                </button>
-            </div>
-            
-            {view === 'history' && transactions.length > 0 && (
-                <button 
-                    onClick={handleClearHistory}
-                    className={`flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors mb-1 ${theme === 'dark' ? 'text-red-400 hover:bg-red-500/10' : 'text-red-600 hover:bg-red-50'}`}
-                >
-                    <Trash2 size={14} /> Clear History
-                </button>
-            )}
+        {/* Navigation Tabs */}
+        <div className="flex gap-2 border-b border-gray-200 dark:border-white/10 pb-1">
+            <button 
+                onClick={() => setView('history')}
+                className={`px-4 py-2 text-sm font-medium transition-colors relative ${view === 'history' ? (theme === 'dark' ? 'text-neonGreen' : 'text-black') : 'text-gray-500'}`}
+            >
+                Transaction Log
+                {view === 'history' && <div className={`absolute bottom-[-5px] left-0 w-full h-0.5 ${theme === 'dark' ? 'bg-neonGreen' : 'bg-black'}`}></div>}
+            </button>
+            <button 
+                onClick={() => setView('performance')}
+                className={`px-4 py-2 text-sm font-medium transition-colors relative ${view === 'performance' ? (theme === 'dark' ? 'text-neonGreen' : 'text-black') : 'text-gray-500'}`}
+            >
+                Stock Performance
+                {view === 'performance' && <div className={`absolute bottom-[-5px] left-0 w-full h-0.5 ${theme === 'dark' ? 'bg-neonGreen' : 'bg-black'}`}></div>}
+            </button>
         </div>
 
         {/* Content Area */}
@@ -198,7 +180,11 @@ export const Activity: React.FC<ActivityProps> = ({ theme, user, championshipId 
                                         {tx.type === 'deposit' || tx.type === 'sell' ? '+' : '-'}${tx.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}
                                     </td>
                                     <td className="px-6 py-4 text-right text-gray-500">
-                                        {tx.quantity ? `${tx.quantity} @ $${tx.price?.toFixed(2)}` : tx.method || '-'}
+                                        {tx.quantity ? (
+                                            tx.symbol?.includes('-USD') 
+                                                ? `${tx.quantity.toLocaleString('it-IT', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} @ $${tx.price?.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                                : `${tx.quantity.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} @ $${tx.price?.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                        ) : tx.method || '-'}
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <span className={`text-xs ${tx.status === 'completed' ? 'text-gray-500' : 'text-orange-500'}`}>
@@ -241,7 +227,7 @@ export const Activity: React.FC<ActivityProps> = ({ theme, user, championshipId 
                                         ${row.soldValue.toLocaleString(undefined, {minimumFractionDigits: 2})}
                                     </td>
                                     <td className={`px-6 py-4 text-right font-bold ${row.realizedPL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                        {row.realizedPL >= 0 ? '+' : ''}${row.realizedPL.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                                        {row.realizedPL >= 0 ? '+' : ''}${row.realizedPL.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </td>
                                 </tr>
                             ))}

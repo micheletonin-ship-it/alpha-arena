@@ -115,7 +115,7 @@ export const Strategies: React.FC<StrategiesProps> = ({ theme, user, onStrategyC
       {!user.is_admin && (
         <div className={`mb-6 p-4 rounded-xl border ${theme === 'dark' ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200'}`}>
           <p className={`text-sm ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
-            ℹ️ Le strategie di trading sono gestite dagli amministratori. Puoi selezionare e applicare qualsiasi strategia disponibile al tuo portfolio.
+            ℹ️ Trading strategies are managed by administrators. You can select and apply any available strategy to your portfolio.
           </p>
         </div>
       )}
@@ -135,18 +135,29 @@ export const Strategies: React.FC<StrategiesProps> = ({ theme, user, onStrategyC
                 {strategy.name}
               </h3>
               <p className="text-sm text-gray-500 mt-1">{strategy.description}</p>
-              <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
-                <span className="flex items-center gap-1">
-                  <Shield size={14} /> Stop Loss: -{strategy.stopLossPercentage}%
-                </span>
-                <span className="flex items-center gap-1">
-                  <TrendingUp size={14} /> Tiers: {strategy.takeProfitTiers.length}
-                </span>
-                {strategy.isSystem && (
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${theme === 'dark' ? 'bg-white/10 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                    System
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center gap-4 text-xs text-gray-400">
+                  <span className="flex items-center gap-1">
+                    <Shield size={14} /> Stop Loss: -{strategy.stopLossPercentage}%
                   </span>
-                )}
+                  {strategy.isSystem && (
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${theme === 'dark' ? 'bg-white/10 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                      System
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs">
+                  <div className="flex items-center gap-1 text-gray-400 mb-1">
+                    <TrendingUp size={14} /> Take Profit Tiers:
+                  </div>
+                  <div className="ml-5 space-y-1">
+                    {strategy.takeProfitTiers.map((tier, index) => (
+                      <div key={index} className="text-gray-500">
+                        • Tier {index + 1}: +{tier.gainThreshold}% → Drop {tier.trailingDrop}%
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">

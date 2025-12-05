@@ -112,7 +112,9 @@ app.post('/api/market-data', async (req, res) => {
   try {
     const { symbols } = req.body;
 
+    console.log('[Alpaca Proxy] ===== REQUEST START =====');
     console.log('[Alpaca Proxy] Request received for symbols:', symbols);
+    console.log('[Alpaca Proxy] Total symbols requested:', symbols?.length);
 
     if (!symbols || !Array.isArray(symbols)) {
       return res.status(400).json({ 
@@ -197,8 +199,9 @@ app.post('/api/market-data', async (req, res) => {
           const item = stocksData[symbol];
           if (item) {
             const price = item.latestTrade?.p || item.dailyBar?.c || 0;
-            const openPrice = item.dailyBar?.o || item.prevDailyBar?.c || price;
-            const changePercent = openPrice > 0 ? ((price - openPrice) / openPrice) * 100 : 0;
+            // Use previous day's close for accurate daily change calculation (matches Google Finance)
+            const prevClose = item.prevDailyBar?.c || item.dailyBar?.o || price;
+            const changePercent = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
             const vol = item.dailyBar?.v || 0;
             const volStr = vol > 1000000 ? `${(vol/1000000).toFixed(1)}M` : vol > 1000 ? `${(vol/1000).toFixed(1)}K` : vol.toString();
 
@@ -224,7 +227,7 @@ app.post('/api/market-data', async (req, res) => {
       }
     }
 
-    // Fetch crypto data
+    // Fetch crypto data with historical data for accurate daily change calculation
     if (cryptoRequestSymbols.length > 0) {
       const cryptoUrlSymbols = cryptoRequestSymbols.map(s => {
         if (s.length > 3 && s.endsWith('USD')) {
@@ -234,9 +237,18 @@ app.post('/api/market-data', async (req, res) => {
         return s;
       });
       
-      const cryptoUrl = `https://data.alpaca.markets/v1beta3/crypto/us/latest/bars?symbols=${cryptoUrlSymbols.join(',')}`;
+      // Calculate date range: from yesterday to today
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 2); // Get 2 days of data to ensure we have yesterday
       
-      const cryptoResponse = await fetch(cryptoUrl, {
+      const startStr = startDate.toISOString().split('T')[0];
+      const endStr = endDate.toISOString().split('T')[0];
+      
+      // Fetch historical bars to get previous day's close
+      const cryptoHistUrl = `https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=${cryptoUrlSymbols.join(',')}&timeframe=1Day&start=${startStr}&end=${endStr}`;
+      
+      const cryptoHistResponse = await fetch(cryptoHistUrl, {
         headers: {
           'APCA-API-KEY-ID': ALPACA_KEY,
           'APCA-API-SECRET-KEY': ALPACA_SECRET,
@@ -244,45 +256,86 @@ app.post('/api/market-data', async (req, res) => {
         }
       });
 
-      if (cryptoResponse.ok) {
-        const cryptoData = await cryptoResponse.json();
-        const bars = cryptoData.bars || {};
+      if (cryptoHistResponse.ok) {
+        const cryptoHistData = await cryptoHistResponse.json();
+        const historicalBars = cryptoHistData.bars || {};
         
-        console.log('[Alpaca Proxy] Crypto response symbols:', Object.keys(bars));
+        console.log('[Alpaca Proxy] Crypto historical data symbols:', Object.keys(historicalBars));
         
-        cryptoUrlSymbols.forEach((symbolWithSlash, index) => {
-          const bar = bars[symbolWithSlash];
-          if (bar) {
-            const originalSymbol = cryptoRequestSymbols[index];
-            const mappedSymbol = symbolMapping[originalSymbol] || originalSymbol;
-            const price = bar.c || 0;
-            const prevClose = bar.o || price;
-            const changePercent = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
-            const vol = bar.v || 0;
-            const volStr = vol > 1000000 ? `${(vol/1000000).toFixed(1)}M` : vol > 1000 ? `${(vol/1000).toFixed(1)}K` : vol.toString();
-
-            const cryptoName = STOCK_NAMES[originalSymbol] || STOCK_NAMES[mappedSymbol] || `${originalSymbol.replace('USD', '')} Crypto`;
-
-            allStocks.push({
-              symbol: mappedSymbol,
-              name: cryptoName,
-              price: parseFloat(price.toFixed(2)),
-              changePercent: parseFloat(changePercent.toFixed(2)),
-              marketCap: 'N/A',
-              volume: volStr
-            });
-            
-            console.log(`[Alpaca Proxy] Added crypto: ${mappedSymbol} (${cryptoName})`);
-          } else {
-            console.log(`[Alpaca Proxy] No data for crypto: ${symbolWithSlash}`);
+        // Now fetch current prices
+        const cryptoUrl = `https://data.alpaca.markets/v1beta3/crypto/us/latest/bars?symbols=${cryptoUrlSymbols.join(',')}`;
+        
+        const cryptoResponse = await fetch(cryptoUrl, {
+          headers: {
+            'APCA-API-KEY-ID': ALPACA_KEY,
+            'APCA-API-SECRET-KEY': ALPACA_SECRET,
+            'accept': 'application/json'
           }
         });
+
+        if (cryptoResponse.ok) {
+          const cryptoData = await cryptoResponse.json();
+          const currentBars = cryptoData.bars || {};
+          
+          cryptoUrlSymbols.forEach((symbolWithSlash, index) => {
+            const currentBar = currentBars[symbolWithSlash];
+            const histBars = historicalBars[symbolWithSlash] || [];
+            
+            if (currentBar) {
+              const originalSymbol = cryptoRequestSymbols[index];
+              const mappedSymbol = symbolMapping[originalSymbol] || originalSymbol;
+              const price = currentBar.c || 0;
+              
+              // Get previous day's close from historical data
+              let prevClose = currentBar.o; // fallback to current open
+              if (histBars.length >= 2) {
+                // Get the second-to-last bar (yesterday's close)
+                prevClose = histBars[histBars.length - 2].c;
+              } else if (histBars.length === 1) {
+                // Only have one historical bar, use its close
+                prevClose = histBars[0].c;
+              }
+              
+              const changePercent = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
+              const vol = currentBar.v || 0;
+              const volStr = vol > 1000000 ? `${(vol/1000000).toFixed(1)}M` : vol > 1000 ? `${(vol/1000).toFixed(1)}K` : vol.toString();
+
+              const cryptoName = STOCK_NAMES[originalSymbol] || STOCK_NAMES[mappedSymbol] || `${originalSymbol.replace('USD', '')} Crypto`;
+
+              allStocks.push({
+                symbol: mappedSymbol,
+                name: cryptoName,
+                price: parseFloat(price.toFixed(2)),
+                changePercent: parseFloat(changePercent.toFixed(2)),
+                marketCap: 'N/A',
+                volume: volStr
+              });
+              
+              console.log(`[Alpaca Proxy] Added crypto: ${mappedSymbol} - Current: $${price}, PrevClose: $${prevClose}, Change: ${changePercent.toFixed(2)}%`);
+            } else {
+              console.log(`[Alpaca Proxy] No current data for crypto: ${symbolWithSlash}`);
+            }
+          });
+        } else {
+          console.error('[Alpaca Proxy] Crypto current API error:', cryptoResponse.status, cryptoResponse.statusText);
+        }
       } else {
-        console.error('[Alpaca Proxy] Crypto API error:', cryptoResponse.status, cryptoResponse.statusText);
+        console.error('[Alpaca Proxy] Crypto historical API error:', cryptoHistResponse.status, cryptoHistResponse.statusText);
       }
     }
 
-    console.log(`[Alpaca Proxy] Returning ${allStocks.length} stocks total`);
+    console.log(`[Alpaca Proxy] ===== SUMMARY =====`);
+    console.log(`[Alpaca Proxy] Requested: ${symbols.length} symbols`);
+    console.log(`[Alpaca Proxy] Returned: ${allStocks.length} stocks`);
+    console.log(`[Alpaca Proxy] Missing: ${symbols.length - allStocks.length} symbols`);
+    
+    if (symbols.length !== allStocks.length) {
+      const returnedSymbols = allStocks.map(s => s.symbol);
+      const missingSymbols = symbols.filter(s => !returnedSymbols.includes(s));
+      console.log('[Alpaca Proxy] MISSING SYMBOLS:', missingSymbols);
+    }
+    
+    console.log('[Alpaca Proxy] ===== REQUEST END =====');
     
     res.json({
       success: true,
@@ -802,12 +855,237 @@ app.delete('/api/admin/users/:id', async (req, res) => {
   }
 });
 
+/**
+ * Clear Scanner Cache Endpoint
+ * Clears the scanner cache for a specific championship or all championships
+ */
+app.delete('/api/scanner/cache/:championshipId?', async (req, res) => {
+  try {
+    const { championshipId } = req.params;
+
+    if (!supabaseAdmin) {
+      return res.status(500).json({ 
+        success: false,
+        error: 'Supabase Admin not initialized' 
+      });
+    }
+
+    console.log(`[Scanner Cache] Clearing cache${championshipId ? ` for championship ${championshipId}` : ' for ALL championships'}...`);
+
+    let result;
+    if (championshipId) {
+      // Clear cache for specific championship
+      result = await supabaseAdmin
+        .from('scanner_cache')
+        .delete()
+        .eq('championship_id', championshipId);
+    } else {
+      // Clear all cache
+      result = await supabaseAdmin
+        .from('scanner_cache')
+        .delete()
+        .neq('championship_id', ''); // Delete all records
+    }
+
+    if (result.error) {
+      console.error('[Scanner Cache] Error clearing cache:', result.error.message);
+      return res.status(500).json({
+        success: false,
+        error: result.error.message
+      });
+    }
+
+    console.log(`[Scanner Cache] Cache cleared successfully`);
+
+    res.json({
+      success: true,
+      message: championshipId 
+        ? `Cache cleared for championship ${championshipId}` 
+        : 'All scanner cache cleared'
+    });
+
+  } catch (error) {
+    console.error('[Scanner Cache Error]:', error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to clear scanner cache',
+      message: error.message 
+    });
+  }
+});
+
+/**
+ * AI Scanner Endpoint - Centralized Market Analysis
+ * Analyzes stocks with AI and caches results per championship for 24h
+ */
+app.post('/api/scanner/analyze', async (req, res) => {
+  try {
+    const { championshipId, tickers, marketData } = req.body;
+
+    console.log('[Scanner AI] Request received:', {
+      championshipId,
+      tickersCount: tickers?.length,
+      marketDataCount: marketData?.length
+    });
+
+    if (!tickers || !championshipId) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Missing required fields: tickers, championshipId' 
+      });
+    }
+
+    // Check cache first (24h validity)
+    if (supabaseAdmin) {
+      const { data: cached } = await supabaseAdmin
+        .from('scanner_cache')
+        .select('*')
+        .eq('championship_id', championshipId)
+        .single();
+
+      if (cached) {
+        const cacheAge = Date.now() - new Date(cached.timestamp).getTime();
+        const twentyFourHours = 24 * 60 * 60 * 1000;
+        
+        if (cacheAge < twentyFourHours) {
+          console.log(`[Scanner AI] Cache HIT for championship ${championshipId}`);
+          return res.json({
+            success: true,
+            results: cached.results,
+            source: 'AI',
+            timestamp: cached.timestamp,
+            cached: true
+          });
+        }
+      }
+    }
+
+    console.log('[Scanner AI] Cache MISS - performing AI analysis');
+
+    // Use OpenAI API
+    const OPENAI_KEY = process.env.OPENAI_API_KEY;
+
+    if (!OPENAI_KEY) {
+      console.error('[Scanner AI] OPENAI_API_KEY not configured');
+      return res.status(500).json({
+        success: false,
+        error: 'AI service not configured',
+        message: 'Please configure OPENAI_API_KEY environment variable'
+      });
+    }
+
+    // Build AI prompt with market data
+    const stockList = marketData ? marketData.map(s => 
+      `${s.symbol} (${s.name}): $${s.price}, ${s.changePercent > 0 ? '+' : ''}${s.changePercent}%, Vol: ${s.volume}`
+    ).join('\n') : tickers.join(', ');
+
+    const prompt = `Sei un analista finanziario esperto. Analizza questi ${tickers.length} titoli e identifica le migliori opportunità di trading.
+
+Stock List:
+${stockList}
+
+Classifica i titoli in 3 categorie strategiche:
+1. **Conservative** (strat_conservative): Basso rischio, stabilità, titoli difensivi, volatilità bassa
+2. **Balanced** (strat_balanced): Rischio/reward moderato, crescita stabile, buon compromesso
+3. **Aggressive** (strat_aggressive): Alto rischio, alta crescita potenziale, volatilità elevata
+
+Criteri di valutazione:
+- Trend di prezzo recente e momentum
+- Volatilità e stabilità storica
+- Volume di scambio (interesse del mercato)
+- Caratteristiche settoriali (tech = aggressive, utilities = conservative, etc.)
+- Risk/reward profile
+
+Seleziona massimo 8 opportunità TOTALI (distribuite tra le 3 categorie).
+Per ogni opportunità, fornisci una ragione dettagliata e convincente (2-3 frasi).
+
+Rispondi SOLO in formato JSON valido:
+{
+  "results": [
+    {
+      "symbol": "AAPL",
+      "categoryId": "strat_conservative",
+      "reason": "Apple mostra stabilità eccellente con volatilità contenuta. Leader tecnologico con business model diversificato e cash flow robusto. Ideale per profilo conservativo."
+    }
+  ]
+}`;
+
+    console.log('[Scanner AI] Calling OpenAI API...');
+
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are a professional financial analyst. Always respond in valid JSON format.' },
+          { role: 'user', content: prompt }
+        ],
+        response_format: { type: 'json_object' },
+        max_tokens: 2048,
+        temperature: 0.7
+      })
+    });
+
+    if (!openaiResponse.ok) {
+      const error = await openaiResponse.json();
+      throw new Error(`OpenAI API error: ${error.error?.message || openaiResponse.statusText}`);
+    }
+
+    const openaiData = await openaiResponse.json();
+    const aiText = openaiData.choices[0]?.message?.content || '{}';
+    const analysisData = JSON.parse(aiText);
+    const results = analysisData.results || [];
+
+    console.log(`[Scanner AI] AI analysis completed: ${results.length} opportunities found`);
+
+    // Cache results for 24h
+    if (supabaseAdmin && results.length > 0) {
+      const { error: cacheError } = await supabaseAdmin
+        .from('scanner_cache')
+        .upsert({
+          championship_id: championshipId,
+          results: results,
+          timestamp: new Date().toISOString()
+        }, {
+          onConflict: 'championship_id'
+        });
+
+      if (cacheError) {
+        console.error('[Scanner AI] Cache save error:', cacheError.message);
+      } else {
+        console.log('[Scanner AI] Results cached successfully');
+      }
+    }
+
+    res.json({
+      success: true,
+      results: results,
+      source: 'AI',
+      timestamp: Date.now(),
+      cached: false
+    });
+
+  } catch (error) {
+    console.error('[Scanner AI Error]:', error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'AI analysis failed',
+      message: error.message 
+    });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Alpha Arena Backend running on http://localhost:${PORT}`);
   console.log(`📡 Health check: http://localhost:${PORT}/api/health`);
   console.log(`💳 Payment endpoint: http://localhost:${PORT}/api/create-payment-intent`);
   console.log(`🔔 Webhook endpoint: http://localhost:${PORT}/api/webhook`);
+  console.log(`🤖 AI Scanner endpoint: http://localhost:${PORT}/api/scanner/analyze`);
 });
 
 // Graceful shutdown

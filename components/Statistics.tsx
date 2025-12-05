@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { Theme, User, Holding, Stock, Transaction } from '../types';
 import { LineChart, BarChart2, TrendingUp, TrendingDown, DollarSign, Wallet, ArrowUpRight, ArrowDownLeft, PieChart } from 'lucide-react';
+import { calculateRealizedPL } from '../services/utils';
 
 interface StatisticsProps {
   theme: Theme;
@@ -27,11 +28,13 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
     let totalSellTrades = 0;
     
     // Performance metrics
-    let realizedPL = 0;
     const tradePerformance: { symbol: string; profit: number; quantity: number; buyPrice: number; sellPrice: number }[] = [];
     
-    // Track position data for realized P/L calculation
+    // Track position data for trade performance metrics (best/worst trades)
     const positionTracker: Record<string, { totalBought: number; totalCost: number; avgBuyPrice: number }> = {};
+
+    // Calculate Realized P/L using shared utility function
+    const realizedPL = calculateRealizedPL(transactions);
 
     // Filter holdings and transactions based on championshipId passed from App.tsx
     // These props are already filtered by App.tsx, no need to filter again.
@@ -82,7 +85,7 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
             totalBuyTrades++;
             totalTrades++;
             
-            // Track position for realized P/L calculation
+            // Track position for trade performance metrics (best/worst trades)
             if (!positionTracker[tx.symbol]) {
                 positionTracker[tx.symbol] = { totalBought: 0, totalCost: 0, avgBuyPrice: 0 };
             }
@@ -95,11 +98,10 @@ export const Statistics: React.FC<StatisticsProps> = ({ theme, user, holdings, m
             totalSellTrades++;
             totalTrades++;
             
-            // Calculate realized P/L for this sell
+            // Track individual trade performance for best/worst trades
             if (positionTracker[tx.symbol]) {
                 const avgBuyPrice = positionTracker[tx.symbol].avgBuyPrice;
                 const profit = (price - avgBuyPrice) * quantity;
-                realizedPL += profit;
                 
                 // Track individual trade performance
                 tradePerformance.push({

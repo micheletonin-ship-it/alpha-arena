@@ -91,11 +91,11 @@ export const AgentMonitor: React.FC<AgentMonitorProps> = ({ theme, user, strateg
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{holding.symbol}</h3>
-                                <p className="text-xs text-gray-500">Avg: ${holding.avgPrice.toFixed(2)} • Current: ${currentPrice.toFixed(2)}</p>
+                                <p className="text-xs text-gray-500">Avg: ${holding.avgPrice.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • Current: ${currentPrice.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                             </div>
                             <div className={`text-right font-mono ${absolutePerformance >= 0 ? 'text-neonGreen' : 'text-red-500'}`}>
-                                <div className="text-lg font-bold">{absolutePerformance >= 0 ? '+' : ''}${absolutePerformance.toFixed(2)}</div>
-                                <div className="text-xs">{currentGain > 0 ? '+' : ''}{currentGain.toFixed(2)}%</div>
+                                <div className="text-lg font-bold">{absolutePerformance >= 0 ? '+' : ''}${absolutePerformance.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                <div className="text-xs">{currentGain > 0 ? '+' : ''}{currentGain.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</div>
                             </div>
                         </div>
 
@@ -109,8 +109,8 @@ export const AgentMonitor: React.FC<AgentMonitorProps> = ({ theme, user, strateg
                             {/* STOP LOSS TRACKER */}
                             <div>
                                 <div className="flex justify-between text-[10px] text-gray-500 mb-1">
-                                    <span>Stop Loss (${stopLossPrice.toFixed(2)})</span>
-                                    <span className={distToStopLoss < 2 ? 'text-red-500 font-bold' : ''}>{distToStopLoss.toFixed(2)}% cushion</span>
+                                    <span>Stop Loss (${stopLossPrice.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span>
+                                    <span className={distToStopLoss < 2 ? 'text-red-500 font-bold' : ''}>{distToStopLoss.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% cushion</span>
                                 </div>
                                 <div className="h-1.5 w-full bg-gray-700 rounded-full overflow-hidden">
                                     {/* Only show bar if price is above stop loss */}
@@ -141,7 +141,7 @@ export const AgentMonitor: React.FC<AgentMonitorProps> = ({ theme, user, strateg
                                 )}
                                 {activeTier && (
                                     <div className="text-[10px] text-right mt-1 text-gray-400">
-                                        Current Drop: {currentDropFromPeak.toFixed(2)}% / Limit: {activeTier.trailingDrop}%
+                                        Current Drop: {currentDropFromPeak.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% / Limit: {activeTier.trailingDrop}%
                                     </div>
                                 )}
                             </div>
@@ -187,7 +187,7 @@ export const AgentMonitor: React.FC<AgentMonitorProps> = ({ theme, user, strateg
                                  <tr key={log.id} className="border-b border-gray-900/50 hover:bg-white/5 transition-colors">
                                      <td className="py-2 pl-2 text-gray-500">{new Date(log.date).toLocaleTimeString()}</td>
                                      <td className="py-2 font-bold text-white">{log.symbol}</td>
-                                     <td className="py-2"><span className="text-red-500">{log.action}</span> @ ${log.price.toFixed(2)}</td>
+                                     <td className="py-2"><span className="text-red-500">{log.action}</span> @ ${log.price.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                      <td className="py-2 text-blue-400">{log.strategyName?.replace('strat_', '')}</td>
                                      <td className="py-2 text-gray-400">{log.details}</td>
                                  </tr>

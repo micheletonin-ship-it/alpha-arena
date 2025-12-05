@@ -31,12 +31,12 @@ export const Welcome: React.FC<WelcomeProps> = ({
           <h1 className={`text-4xl md:text-5xl font-bold mb-4 ${
             theme === 'dark' ? 'text-white' : 'text-gray-900'
           }`}>
-            🎉 Benvenuto in Alpha Arena, {user.name}!
+            🎉 Welcome to Alpha Arena, {user.name}!
           </h1>
           <p className={`text-xl ${
             theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
           }`}>
-            La tua registrazione è completata con successo
+            Your registration is successfully completed
           </p>
         </div>
 
@@ -49,33 +49,33 @@ export const Welcome: React.FC<WelcomeProps> = ({
           <h2 className={`text-2xl font-bold mb-6 text-center ${
             theme === 'dark' ? 'text-white' : 'text-gray-900'
           }`}>
-            Cosa puoi fare qui
+            What you can do here
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FeatureCard
               theme={theme}
               icon={<Trophy className="text-neonGreen" size={32} />}
-              title="Campionati di Trading"
-              description="Competi con capitale virtuale su crypto e azioni USA con prezzi reali"
+              title="Trading Championships"
+              description="Compete with virtual capital on crypto and US stocks with real prices"
             />
             <FeatureCard
               theme={theme}
               icon={<Bot className="text-neonGreen" size={32} />}
               title="AI Trading Agent"
-              description="Strategie automatiche che gestiscono le vendite 24/7"
+              description="Automatic strategies that manage sales 24/7"
             />
             <FeatureCard
               theme={theme}
               icon={<Sparkles className="text-neonGreen" size={32} />}
               title="AI Suggestions"
-              description="Ricevi suggerimenti su titoli e strategie basati sull'intelligenza artificiale"
+              description="Get suggestions on tickers and strategies based on artificial intelligence"
             />
             <FeatureCard
               theme={theme}
               icon={<MessageSquare className="text-neonGreen" size={32} />}
-              title="ChatBot Portafoglio"
-              description="Chiedi 'Come sto andando?' per analisi immediate del tuo portfolio"
+              title="Portfolio ChatBot"
+              description="Ask 'How am I doing?' for immediate analysis of your portfolio"
             />
           </div>
         </div>
@@ -89,15 +89,15 @@ export const Welcome: React.FC<WelcomeProps> = ({
           <h3 className={`text-xl font-bold mb-6 ${
             theme === 'dark' ? 'text-white' : 'text-gray-900'
           }`}>
-            Come funziona
+            How it works
           </h3>
           <ol className="space-y-4">
             {[
-              'Scegli o crea un campionato',
-              'Ricevi capitale virtuale per iniziare',
-              'Compra e vendi azioni e crypto con prezzi reali',
-              'Compete per scalare la classifica',
-              'Vinci premi reali nei tornei premium (coming soon)'
+              'Choose or create a championship',
+              'Receive virtual capital to start',
+              'Buy and sell stocks and crypto with real prices',
+              'Compete to climb the leaderboard',
+              'Win real prizes in premium tournaments (coming soon)'
             ].map((step, index) => (
               <li key={index} className="flex items-start gap-3">
                 <span className={`flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 ${
@@ -125,12 +125,12 @@ export const Welcome: React.FC<WelcomeProps> = ({
             <h3 className={`text-2xl font-bold mb-2 ${
               theme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
-              Pronto per iniziare?
+              Ready to start?
             </h3>
             <p className={`text-sm ${
               theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              Unisciti al campionato gratuito e inizia a fare trading
+              Join the free championship and start trading
             </p>
           </div>
 
@@ -144,7 +144,7 @@ export const Welcome: React.FC<WelcomeProps> = ({
               }`}
             >
               <Trophy size={24} />
-              Entra nel Campionato Gratuito
+              Join Free Championship
               <ChevronRight size={20} />
             </button>
 
@@ -156,7 +156,7 @@ export const Welcome: React.FC<WelcomeProps> = ({
                   : 'bg-white hover:bg-gray-50 text-gray-900 border-gray-300'
               }`}
             >
-              Vai alla Dashboard
+              Go to Dashboard
               <ChevronRight size={20} />
             </button>
           </div>
@@ -164,7 +164,7 @@ export const Welcome: React.FC<WelcomeProps> = ({
           <p className={`text-center mt-6 text-xs ${
             theme === 'dark' ? 'text-gray-500' : 'text-gray-600'
           }`}>
-            💡 Potrai sempre cambiare campionato o crearne di nuovi dalla dashboard
+            💡 You can always change championship or create new ones from the dashboard
           </p>
         </div>
 

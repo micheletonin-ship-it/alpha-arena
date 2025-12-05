@@ -3,6 +3,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Stock, Holding, Theme, Transaction } from '../types';
 import { Wallet, PieChart, ArrowUpRight, ArrowDownRight, DollarSign, ExternalLink } from 'lucide-react';
 import * as db from '../services/database';
+import { calculateRealizedPL } from '../services/utils';
 
 interface PortfolioProps {
   marketData: Stock[];
@@ -19,49 +20,19 @@ export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holding
   
   const [realizedPL, setRealizedPL] = useState(0);
 
-  // Calculate Realized P/L from completed sales
+  // Calculate Realized P/L from completed sales using shared utility function
   useEffect(() => {
-    const calculateRealizedPL = async () => {
+    const fetchAndCalculateRealizedPL = async () => {
       try {
         const transactions = await db.getTransactions(userEmail, championshipId);
-        
-        // Group transactions by symbol to calculate avg buy price
-        const symbolData: Record<string, { totalBought: number; quantityBought: number; totalSold: number; quantitySold: number }> = {};
-        
-        transactions.forEach(tx => {
-          if (tx.symbol && tx.quantity && tx.price) {
-            if (!symbolData[tx.symbol]) {
-              symbolData[tx.symbol] = { totalBought: 0, quantityBought: 0, totalSold: 0, quantitySold: 0 };
-            }
-            
-            if (tx.type === 'buy') {
-              symbolData[tx.symbol].totalBought += tx.price * tx.quantity;
-              symbolData[tx.symbol].quantityBought += tx.quantity;
-            } else if (tx.type === 'sell') {
-              symbolData[tx.symbol].totalSold += tx.price * tx.quantity;
-              symbolData[tx.symbol].quantitySold += tx.quantity;
-            }
-          }
-        });
-        
-        // Calculate realized P/L for each symbol
-        let totalRealized = 0;
-        Object.values(symbolData).forEach(data => {
-          if (data.quantitySold > 0 && data.quantityBought > 0) {
-            const avgBuyPrice = data.totalBought / data.quantityBought;
-            const avgSellPrice = data.totalSold / data.quantitySold;
-            const realizedForSymbol = (avgSellPrice - avgBuyPrice) * data.quantitySold;
-            totalRealized += realizedForSymbol;
-          }
-        });
-        
-        setRealizedPL(totalRealized);
+        const realized = calculateRealizedPL(transactions);
+        setRealizedPL(realized);
       } catch (error) {
         console.error('Error calculating realized P/L:', error);
       }
     };
     
-    calculateRealizedPL();
+    fetchAndCalculateRealizedPL();
   }, [userEmail, championshipId]);
   
   // Generate Google Finance URL
@@ -164,7 +135,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holding
                   <span className="text-xs text-gray-500 dark:text-gray-400">Total Return (Unrealized)</span>
                   <div className={`flex items-center gap-1 text-lg font-semibold ${isPositive ? 'text-green-600 dark:text-neonGreen' : 'text-red-600 dark:text-mutedRed'}`}>
                     {isPositive ? '+' : ''}${portfolioStats.totalReturn.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                    <span className="text-sm">({portfolioStats.totalReturnPercent.toFixed(2)}%)</span>
+                    <span className="text-sm">({portfolioStats.totalReturnPercent.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)</span>
                   </div>
                 </div>
                 <div className="h-8 w-px bg-gray-200 dark:bg-white/10"></div>
@@ -232,12 +203,15 @@ export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holding
                   <td className="px-6 py-4 text-right">
                     <div className="font-medium text-gray-900 dark:text-white">${holding.currentPrice.toFixed(2)}</div>
                     <div className={`text-xs ${holding.dayChangePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {holding.dayChangePercent > 0 ? '+' : ''}{holding.dayChangePercent.toFixed(2)}%
+                      {holding.dayChangePercent > 0 ? '+' : ''}{holding.dayChangePercent.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="font-medium text-gray-900 dark:text-white">
-                      {holding.symbol.includes('-USD') ? holding.quantity.toFixed(3) : holding.quantity} Shares
+                      {holding.symbol.includes('-USD') 
+                        ? holding.quantity.toLocaleString('it-IT', { minimumFractionDigits: 3, maximumFractionDigits: 3 })
+                        : holding.quantity.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                      } Shares
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">Avg: ${holding.avgPrice.toFixed(2)}</div>
                   </td>
@@ -249,7 +223,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holding
                       {holding.totalReturn >= 0 ? '+' : ''}${holding.totalReturn.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                     </div>
                     <div className={`text-xs ${holding.totalReturn >= 0 ? 'text-green-600 dark:text-neonGreen' : 'text-red-600 dark:text-mutedRed'}`}>
-                      {holding.returnPercent.toFixed(2)}%
+                      {holding.returnPercent.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
