@@ -1079,6 +1079,182 @@ Rispondi SOLO in formato JSON valido:
   }
 });
 
+/**
+ * Run Scanner On-Demand (Admin only)
+ * Triggers an immediate AI scan for a championship using admin's OpenAI key
+ */
+app.post('/api/scanner/run/:championshipId', async (req, res) => {
+  try {
+    const { championshipId } = req.params;
+    const { adminUserId } = req.body;
+
+    console.log(`[Scanner Run] Admin ${adminUserId} requesting scan for championship ${championshipId}`);
+
+    if (!adminUserId || !championshipId) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Missing required fields: adminUserId, championshipId' 
+      });
+    }
+
+    if (!supabaseAdmin) {
+      return res.status(500).json({ 
+        success: false,
+        error: 'Supabase Admin not initialized' 
+      });
+    }
+
+    // Get admin's OpenAI key from user_profiles
+    const { data: adminProfile, error: profileError } = await supabaseAdmin
+      .from('user_profiles')
+      .select('openai_key')
+      .eq('email', adminUserId)
+      .single();
+
+    if (profileError || !adminProfile || !adminProfile.openai_key) {
+      console.error('[Scanner Run] Admin OpenAI key not found');
+      return res.status(400).json({
+        success: false,
+        error: 'OpenAI key not configured',
+        message: 'Please configure your OpenAI API key in Settings before running a scan.'
+      });
+    }
+
+    // Decrypt the admin's OpenAI key (assuming it's encrypted in the DB)
+    // For now, we'll assume it's stored encrypted and needs decryption
+    // If it's plain text, use it directly
+    const openaiKey = adminProfile.openai_key;
+
+    console.log('[Scanner Run] Admin OpenAI key found, starting scan...');
+
+    // Get championship details to get allowed tickers
+    const { data: championship, error: champError } = await supabaseAdmin
+      .from('championships')
+      .select('name, allowed_tickers')
+      .eq('id', championshipId)
+      .single();
+
+    if (champError || !championship) {
+      return res.status(404).json({
+        success: false,
+        error: 'Championship not found'
+      });
+    }
+
+    const tickers = championship.allowed_tickers || [];
+    
+    if (tickers.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No tickers configured for this championship'
+      });
+    }
+
+    console.log(`[Scanner Run] Championship "${championship.name}" has ${tickers.length} tickers`);
+
+    // Build AI prompt
+    const prompt = `Sei un analista finanziario esperto. Analizza questi ${tickers.length} titoli e identifica le migliori opportunità di trading.
+
+Stock List:
+${tickers.join(', ')}
+
+Classifica i titoli in 3 categorie strategiche:
+1. **Conservative** (strat_conservative): Basso rischio, stabilità, titoli difensivi, volatilità bassa
+2. **Balanced** (strat_balanced): Rischio/reward moderato, crescita stabile, buon compromesso
+3. **Aggressive** (strat_aggressive): Alto rischio, alta crescita potenziale, volatilità elevata
+
+Criteri di valutazione:
+- Trend di prezzo recente e momentum
+- Volatilità e stabilità storica
+- Volume di scambio (interesse del mercato)
+- Caratteristiche settoriali (tech = aggressive, utilities = conservative, etc.)
+- Risk/reward profile
+
+Seleziona massimo 8 opportunità TOTALI (distribuite tra le 3 categorie).
+Per ogni opportunità, fornisci una ragione dettagliata e convincente (2-3 frasi).
+
+Rispondi SOLO in formato JSON valido:
+{
+  "results": [
+    {
+      "symbol": "AAPL",
+      "categoryId": "strat_conservative",
+      "reason": "Apple mostra stabilità eccellente con volatilità contenuta. Leader tecnologico con business model diversificato e cash flow robusto. Ideale per profilo conservativo."
+    }
+  ]
+}`;
+
+    console.log('[Scanner Run] Calling OpenAI API...');
+
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are a professional financial analyst. Always respond in valid JSON format.' },
+          { role: 'user', content: prompt }
+        ],
+        response_format: { type: 'json_object' },
+        max_tokens: 2048,
+        temperature: 0.7
+      })
+    });
+
+    if (!openaiResponse.ok) {
+      const error = await openaiResponse.json();
+      console.error('[Scanner Run] OpenAI error:', error);
+      throw new Error(`OpenAI API error: ${error.error?.message || openaiResponse.statusText}`);
+    }
+
+    const openaiData = await openaiResponse.json();
+    const aiText = openaiData.choices[0]?.message?.content || '{}';
+    const analysisData = JSON.parse(aiText);
+    const results = analysisData.results || [];
+
+    console.log(`[Scanner Run] AI analysis completed: ${results.length} opportunities found`);
+
+    // Cache results for 24h
+    if (results.length > 0) {
+      const { error: cacheError } = await supabaseAdmin
+        .from('scanner_cache')
+        .upsert({
+          championship_id: championshipId,
+          results: results,
+          timestamp: new Date().toISOString(),
+          source: 'AI'
+        }, {
+          onConflict: 'championship_id'
+        });
+
+      if (cacheError) {
+        console.error('[Scanner Run] Cache save error:', cacheError.message);
+      } else {
+        console.log('[Scanner Run] Results cached successfully');
+      }
+    }
+
+    res.json({
+      success: true,
+      opportunitiesCount: results.length,
+      source: 'AI',
+      timestamp: new Date().toISOString(),
+      results: results
+    });
+
+  } catch (error) {
+    console.error('[Scanner Run Error]:', error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Scanner run failed',
+      message: error.message 
+    });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Alpha Arena Backend running on http://localhost:${PORT}`);
@@ -1086,6 +1262,7 @@ app.listen(PORT, () => {
   console.log(`💳 Payment endpoint: http://localhost:${PORT}/api/create-payment-intent`);
   console.log(`🔔 Webhook endpoint: http://localhost:${PORT}/api/webhook`);
   console.log(`🤖 AI Scanner endpoint: http://localhost:${PORT}/api/scanner/analyze`);
+  console.log(`🚀 Run Scanner endpoint: http://localhost:${PORT}/api/scanner/run/:championshipId`);
 });
 
 // Graceful shutdown
