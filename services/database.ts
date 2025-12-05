@@ -776,10 +776,15 @@ export const saveGlobalScanReport = async (scanReport: ScanReport, championshipI
     
     if (supabase) {
         try {
+            // Ensure timestamp is a number (bigint in DB), not a string
+            const timestampAsNumber = typeof scanReport.timestamp === 'string' 
+                ? new Date(scanReport.timestamp).getTime() 
+                : scanReport.timestamp;
+            
             // Use upsert to update the single row for the global scanner
             const { error } = await supabase.from('agent_scan_results').upsert({
                 user_email: GLOBAL_SCANNER_ID, // Use fixed ID
-                timestamp: scanReport.timestamp,
+                timestamp: timestampAsNumber, // FIX: Convert to number if it's a string
                 results: scanReport.results, // Store the array directly
                 source: scanReport.source,
                 ai_error_message: scanReport.aiErrorMessage,
