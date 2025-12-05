@@ -481,7 +481,7 @@ export const scanMarketOpportunities = async (marketData: Stock[], strategies: S
         console.log('📊 [Scanner] Tickers to analyze:', tickersToAnalyze);
         console.log('💹 [Scanner] Market data count:', marketData.length);
         
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+        const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
         const requestBody = {
             championshipId,
             tickers: tickersToAnalyze,
