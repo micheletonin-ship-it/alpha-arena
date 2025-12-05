@@ -229,6 +229,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, currentUser, mark
             theme={theme}
             championships={championships}
             onClearCache={handleClearScannerCache}
+            onRunScan={handleRunScanNow}
           />
 
           {/* Championships Manager */}
@@ -433,6 +434,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, currentUser, mark
     } catch (error) {
       console.error('Failed to clear scanner cache:', error);
       alert('❌ Errore durante la cancellazione della cache dello scanner');
+    }
+  }
+
+  // NEW: Run scan on-demand
+  async function handleRunScanNow(championshipId: string) {
+    if (!confirm('Lanciare scan AI immediato per questo campionato? Questo consumerà crediti OpenAI.')) return;
+    
+    try {
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${backendUrl}/api/scanner/run/${championshipId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          adminUserId: currentUser.id // Pass admin user ID for their OpenAI key
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to run scan');
+      }
+      
+      const result = await response.json();
+      alert(`✅ Scan completato! Trovate ${result.opportunitiesCount} opportunità. Source: ${result.source}`);
+      
+      // Reload scanner info to show updated data
+      await loadAdminData();
+    } catch (error: any) {
+      console.error('Failed to run scan:', error);
+      alert(`❌ Errore durante lo scan: ${error.message}`);
     }
   }
 
@@ -909,15 +942,18 @@ interface ScannerManagerProps {
   theme: Theme;
   championships: Championship[];
   onClearCache: (championshipId: string) => Promise<void>;
+  onRunScan: (championshipId: string) => Promise<void>;
 }
 
 const ScannerManager: React.FC<ScannerManagerProps> = ({
   theme,
   championships,
   onClearCache,
+  onRunScan,
 }) => {
   const [scannerInfo, setScannerInfo] = useState<Map<string, { lastScan: string; source: string }>>(new Map());
   const [loadingChamps, setLoadingChamps] = useState<Set<string>>(new Set());
+  const [runningScans, setRunningScans] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadScannerInfo();
@@ -960,6 +996,20 @@ const ScannerManager: React.FC<ScannerManagerProps> = ({
       await loadScannerInfo(); // Reload info after clearing
     } finally {
       setLoadingChamps(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(championshipId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleRunScan = async (championshipId: string) => {
+    setRunningScans(prev => new Set(prev).add(championshipId));
+    try {
+      await onRunScan(championshipId);
+      await loadScannerInfo(); // Reload info after scan
+    } finally {
+      setRunningScans(prev => {
         const newSet = new Set(prev);
         newSet.delete(championshipId);
         return newSet;
@@ -1036,7 +1086,30 @@ const ScannerManager: React.FC<ScannerManagerProps> = ({
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleRunScan(champ.id)}
+                          disabled={runningScans.has(champ.id)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                            runningScans.has(champ.id)
+                              ? 'opacity-50 cursor-not-allowed'
+                              : theme === 'dark' 
+                                ? 'bg-purple-500/20 hover:bg-purple-500/30 text-purple-400' 
+                                : 'bg-purple-100 hover:bg-purple-200 text-purple-700'
+                          }`}
+                          title="Avvia Scan AI Immediato"
+                        >
+                          {runningScans.has(champ.id) ? (
+                            <>
+                              <div className="h-3 w-3 animate-spin rounded-full border-2 border-purple-400 border-t-transparent"/>
+                              Scanning...
+                            </>
+                          ) : (
+                            <>
+                              <Radar size={12}/> Run Scan
+                            </>
+                          )}
+                        </button>
                         <button
                           onClick={() => handleClearCache(champ.id)}
                           disabled={isLoading}
