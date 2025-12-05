@@ -408,7 +408,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, currentUser, mark
     
     try {
       // 1. Clear backend cache
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       const response = await fetch(`${backendUrl}/api/scanner/cache/${championshipId}`, {
         method: 'DELETE'
       });
