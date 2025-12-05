@@ -2,8 +2,8 @@
 // This file handles real backend API calls for Stripe payment processing.
 // The backend server safely handles Stripe Secret Keys and interacts with Stripe's API.
 
-// Backend API URL - Update this if your backend runs on a different port
-const BACKEND_API_URL = 'http://localhost:3001';
+// Backend API URL - Uses environment variable or falls back to localhost for development
+const BACKEND_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 interface PaymentResponse {
   success: boolean;
