@@ -25,6 +25,9 @@ SUPABASE_SERVICE_KEY=sb_secret_iTuYcSN-E-PhBCItD-iCLA_t1xkScb3
 ALPACA_KEY=PKXWI4DU5YPOUUDL45BSVDQFYR
 ALPACA_SECRET=BT3qjpfSEXKVJbS6tHwxpFPtoxBkBfrCKvhPZi6GpVDD
 
+# OpenAI API Key (NECESSARIO per AI Scanner)
+OPENAI_API_KEY=sk-proj-your_openai_key_here
+
 # Frontend URL (per CORS)
 FRONTEND_URL=https://alphaarenatrade.com
 
@@ -116,6 +119,24 @@ const API_BASE_URL = 'https://amusing-ambition-production-bf0a.up.railway.app';
 2. Verifica che tutte le dipendenze siano installate (`npm install`)
 3. Controlla che `package.json` abbia lo script start corretto
 
+### Errore: "Scanner mostra risultati diversi tra cloud e locale" 🔍
+**Problema:**
+Lo scanner su Railway mostra risultati euristici (semplici), mentre in locale mostra analisi AI dettagliate.
+
+**Causa:**
+La variabile `OPENAI_API_KEY` non è configurata su Railway. Il backend usa OpenAI GPT-4o-mini per l'analisi AI dello scanner.
+
+**Soluzione:**
+1. Aggiungi `OPENAI_API_KEY` nelle variabili d'ambiente Railway (vedi sezione sopra)
+2. Usa la stessa chiave che hai in `backend/.env` locale
+3. Railway farà automaticamente un redeploy
+4. Verifica nei logs che non ci siano errori tipo "OPENAI_API_KEY not configured"
+5. Testa lo scanner - ora dovrebbe mostrare analisi AI dettagliate anche su cloud!
+
+**Come verificare:**
+- **Scanner AI**: Le "reason" sono dettagliate e personalizzate (es: "Apple mostra stabilità eccellente...")
+- **Scanner Euristico**: Le "reason" sono generiche (es: "Heuristic: balanced profile...")
+
 ---
 
 ## 📝 Checklist Deployment Completo
@@ -124,6 +145,7 @@ const API_BASE_URL = 'https://amusing-ambition-production-bf0a.up.railway.app';
 - [ ] `SUPABASE_URL` configurato
 - [ ] `SUPABASE_SERVICE_KEY` configurato (quella `sb_secret_...`)
 - [ ] `ALPACA_KEY` e `ALPACA_SECRET` configurati
+- [ ] `OPENAI_API_KEY` configurato (per AI Scanner - **IMPORTANTISSIMO**)
 - [ ] `FRONTEND_URL` configurato
 - [ ] `NODE_ENV=production`
 - [ ] Backend deployment attivo

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaArena Icon Generator</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #121212;
+            color: white;
+        }
+        h1 { color: #10B981; }
+        .canvas-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .canvas-item {
+            text-align: center;
+            padding: 20px;
+            background: #1E1E1E;
+            border-radius: 12px;
+        }
+        canvas {
+            border: 2px solid #10B981;
+            border-radius: 12px;
+            margin: 10px 0;
+            max-width: 100%;
+            height: auto;
+        }
+        button {
+            background: #10B981;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+        }
+        button:hover {
+            background: #059669;
+        }
+        .download-all {
+            background: #EF4444;
+            font-size: 18px;
+            padding: 15px 30px;
+        }
+        .instructions {
+            background: #1E1E1E;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #10B981;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 AlphaArena Icon Generator</h1>
+    
+    <div class="instructions">
+        <h3>📋 Istruzioni:</h3>
+        <ol>
+            <li>Click su "Download All Icons" per scaricare tutte le icone in un ZIP (se disponibile)</li>
+            <li>OPPURE click sui singoli pulsanti "Download" sotto ogni icona</li>
+            <li>Salva tutte le icone nella cartella <code>public/icons/</code></li>
+            <li>Le icone sono già nelle dimensioni corrette per la PWA!</li>
+        </ol>
+    </div>
+
+    <div style="text-align: center; margin: 30px 0;">
+        <button class="download-all" onclick="downloadAllIcons()">📦 Download All Icons</button>
+    </div>
+
+    <div class="canvas-container">
+        <div class="canvas-item">
+            <h3>icon-192.png</h3>
+            <canvas id="icon192" width="192" height="192"></canvas>
+            <br>
+            <button onclick="downloadIcon('icon192', 'icon-192.png')">Download</button>
+        </div>
+        
+        <div class="canvas-item">
+            <h3>icon-512.png</h3>
+            <canvas id="icon512" width="512" height="512"></canvas>
+            <br>
+            <button onclick="downloadIcon('icon512', 'icon-512.png')">Download</button>
+        </div>
+        
+        <div class="canvas-item">
+            <h3>icon-maskable-192.png</h3>
+            <canvas id="maskable192" width="192" height="192"></canvas>
+            <br>
+            <button onclick="downloadIcon('maskable192', 'icon-maskable-192.png')">Download</button>
+        </div>
+        
+        <div class="canvas-item">
+            <h3>icon-maskable-512.png</h3>
+            <canvas id="maskable512" width="512" height="512"></canvas>
+            <br>
+            <button onclick="downloadIcon('maskable512', 'icon-maskable-512.png')">Download</button>
+        </div>
+    </div>
+
+    <script>
+        function drawIcon(canvasId, size, isMaskable = false) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Background gradient (neon green to dark)
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#10B981');
+            gradient.addColorStop(1, '#121212');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Add safe zone for maskable icons
+            const padding = isMaskable ? size * 0.1 : 0;
+            const contentSize = size - (padding * 2);
+            const centerX = size / 2;
+            const centerY = size / 2;
+            
+            // Draw "AA" text
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${contentSize * 0.4}px Arial, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('AA', centerX, centerY);
+            
+            // Add subtle shadow for depth
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = size * 0.02;
+            ctx.shadowOffsetX = size * 0.01;
+            ctx.shadowOffsetY = size * 0.01;
+            
+            // Draw small trading chart icon below AA
+            const chartY = centerY + (contentSize * 0.25);
+            const chartHeight = contentSize * 0.15;
+            const chartWidth = contentSize * 0.4;
+            
+            ctx.strokeStyle = '#10B981';
+            ctx.lineWidth = size * 0.01;
+            ctx.beginPath();
+            const points = [
+                [centerX - chartWidth/2, chartY],
+                [centerX - chartWidth/4, chartY - chartHeight/2],
+                [centerX, chartY + chartHeight/3],
+                [centerX + chartWidth/4, chartY - chartHeight],
+                [centerX + chartWidth/2, chartY - chartHeight/4]
+            ];
+            points.forEach((point, i) => {
+                if (i === 0) ctx.moveTo(point[0], point[1]);
+                else ctx.lineTo(point[0], point[1]);
+            });
+            ctx.stroke();
+        }
+        
+        function downloadIcon(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        async function downloadAllIcons() {
+            alert('Scarica le icone una per una usando i pulsanti sotto ogni icona. Salvale tutte in public/icons/');
+        }
+        
+        // Generate all icons on page load
+        drawIcon('icon192', 192, false);
+        drawIcon('icon512', 512, false);
+        drawIcon('maskable192', 192, true);
+        drawIcon('maskable512', 512, true);
+    </script>
+</body>
+</html>

@@ -12,6 +12,7 @@ import { Login } from './components/Login';
 import { Welcome } from './components/Welcome';
 import { LandingMobile } from './components/LandingMobile';
 import { TradeModal } from './components/TradeModal';
+import InstallPrompt from './components/InstallPrompt';
 import { Activity } from './components/Activity';
 import { Statistics } from './components/Statistics';
 import { Championships } from './components/Championships';
@@ -1444,42 +1445,46 @@ const AppContent: React.FC = () => {
 
 
   return (
-    <Layout 
-        theme={theme} 
-        toggleTheme={toggleTheme} 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        userBalance={buyingPower} 
-        currentUser={currentUser}
-        currentChampionshipName={currentChampionshipName} // UPDATED: now string
-        onLogout={handleLogout} // NEW: Log out handler for mobile sidebar
-        // Removed onSwitchToPersonalPortfolio
-    >
+    <>
+      <InstallPrompt />
       
-      {renderContent()}
+      <Layout 
+          theme={theme} 
+          toggleTheme={toggleTheme} 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+          userBalance={buyingPower} 
+          currentUser={currentUser}
+          currentChampionshipName={currentChampionshipName} // UPDATED: now string
+          onLogout={handleLogout} // NEW: Log out handler for mobile sidebar
+          // Removed onSwitchToPersonalPortfolio
+      >
+        
+        {renderContent()}
 
-      {currentUser && currentChampionshipId && ( // UPDATED: Only show chatbot if championship is active
-          <ChatBot theme={theme} marketData={stocks} holdings={holdings} user={currentUser} championshipId={currentChampionshipId} />
-      )}
+        {currentUser && currentChampionshipId && ( // UPDATED: Only show chatbot if championship is active
+            <ChatBot theme={theme} marketData={stocks} holdings={holdings} user={currentUser} championshipId={currentChampionshipId} />
+        )}
 
-      <TradeModal 
-         isOpen={isTradeModalOpen}
-         onClose={() => setIsTradeModalOpen(false)}
-         type={tradeType}
-         stock={selectedStock}
-         currentPrice={getSelectedStockPrice()}
-         theme={theme}
-         onConfirm={handleConfirmTrade}
-         userBalance={buyingPower}
-         userHoldingQuantity={getSelectedStockQuantity()}
-         onRefreshBalance={() => refreshUserData(currentUser.id, currentChampionshipId)}
-         strategies={strategies}
-         defaultStrategyId={tradeDefaultStrategyId || (currentUser ? currentUser.activeStrategyId : undefined)}
-         championshipId={currentChampionshipId} // UPDATED: now string
-         maxTradeAmount={MAX_TRADE_AMOUNT}
-      />
+        <TradeModal 
+           isOpen={isTradeModalOpen}
+           onClose={() => setIsTradeModalOpen(false)}
+           type={tradeType}
+           stock={selectedStock}
+           currentPrice={getSelectedStockPrice()}
+           theme={theme}
+           onConfirm={handleConfirmTrade}
+           userBalance={buyingPower}
+           userHoldingQuantity={getSelectedStockQuantity()}
+           onRefreshBalance={() => refreshUserData(currentUser.id, currentChampionshipId)}
+           strategies={strategies}
+           defaultStrategyId={tradeDefaultStrategyId || (currentUser ? currentUser.activeStrategyId : undefined)}
+           championshipId={currentChampionshipId} // UPDATED: now string
+           maxTradeAmount={MAX_TRADE_AMOUNT}
+        />
 
-    </Layout>
+      </Layout>
+    </>
   );
 };
 

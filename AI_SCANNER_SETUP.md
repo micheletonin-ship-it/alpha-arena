@@ -2,7 +2,9 @@
 
 ## Overview
 
-Il **Market Scanner** ora utilizza **AI Gemini** centralizzata nel backend per analizzare i titoli e fornire raccomandazioni intelligenti invece del semplice modello euristico.
+Il **Market Scanner** ora utilizza **AI OpenAI GPT-4o-mini** centralizzata nel backend per analizzare i titoli e fornire raccomandazioni intelligenti invece del semplice modello euristico.
+
+⚠️ **NOTA:** La documentazione originale menzionava Gemini, ma l'implementazione corrente usa **OpenAI**. Vedi sezione "Configurazione Backend" per dettagli.
 
 ### Architettura
 
@@ -11,7 +13,7 @@ Frontend (Scanner)
     ↓
 Backend API (/api/scanner/analyze)
     ↓
-Google Gemini AI (backend key)
+OpenAI GPT-4o-mini API (backend key)
     ↓
 Cache Supabase (24h)
     ↓
@@ -46,8 +48,8 @@ O copia/incolla il contenuto di `scanner_cache_schema.sql` nel SQL Editor di Sup
 Aggiungi al file `backend/.env`:
 
 ```env
-# Google Gemini API Key (per AI Scanner)
-GEMINI_API_KEY=AIzaSy...your_key_here
+# OpenAI API Key (per AI Scanner) - ATTUALMENTE IN USO
+OPENAI_API_KEY=sk-proj-your_openai_key_here
 
 # Existing vars
 SUPABASE_URL=https://your-project.supabase.co
@@ -56,11 +58,17 @@ ALPACA_KEY=PK...
 ALPACA_SECRET=...
 ```
 
-**Dove ottenere GEMINI_API_KEY:**
-1. Vai su https://aistudio.google.com/app/apikey
-2. Crea un nuovo progetto o seleziona esistente
-3. Clicca "Create API Key"
-4. Copia la chiave (inizia con `AIzaSy...`)
+**Dove ottenere OPENAI_API_KEY:**
+1. Vai su https://platform.openai.com/api-keys
+2. Login con il tuo account OpenAI
+3. Clicca "Create new secret key"
+4. Copia la chiave (inizia con `sk-proj-...` o `sk-...`)
+5. Salva la chiave in un posto sicuro (non potrai rivederla!)
+
+**Costi OpenAI GPT-4o-mini:**
+- Input: $0.150 per 1M tokens
+- Output: $0.600 per 1M tokens  
+- Molto economico per questo use case (~$0.002 per scan)
 
 ### 3. Configurare Frontend Environment
 
@@ -74,14 +82,19 @@ VITE_BACKEND_URL=http://localhost:3001
 # VITE_BACKEND_URL=https://your-backend-on-railway.up.railway.app
 ```
 
-### 4. Installare dipendenza Backend
+### 4. Installare dipendenza Backend ⚠️
 
-Il backend richiede il package `@google/genai`:
+⚠️ **NOTA:** Il backend **NON** richiede dipendenze aggiuntive per OpenAI. 
+L'API OpenAI è chiamata direttamente tramite `fetch()`.
+
+Se in precedenza avevi installato `@google/genai` per Gemini, puoi rimuoverlo:
 
 ```bash
 cd backend
-npm install @google/genai
+npm uninstall @google/genai
 ```
+
+Ma non è necessario - il backend funziona correttamente anche con il package installato.
 
 ### 5. Riavviare servizi
 
@@ -166,7 +179,7 @@ Cerca questi log:
 [Scanner AI] Request received: {...}
 [Scanner AI] Cache HIT for championship xyz123
 [Scanner AI] Cache MISS - performing AI analysis
-[Scanner AI] Calling Gemini API...
+[Scanner AI] Calling OpenAI API...
 [Scanner AI] AI analysis completed: 8 opportunities found
 [Scanner AI] Results cached successfully
 ```
@@ -194,7 +207,7 @@ E lo scanner mostrerà comunque risultati (euristici).
 
 ### Per Championship con 10 ticker
 
-**Backend Centralizzato:**
+**Backend Centralizzato OpenAI:**
 - 1 scan/giorno × 10 ticker = **1 chiamata batch**
 - Token: ~2000 input + 1000 output = 3k tokens
 - Costo: ~$0.002/giorno = **$0.06/mese**
@@ -202,24 +215,27 @@ E lo scanner mostrerà comunque risultati (euristici).
 **Con 10 Championships attivi:**
 - 10 championships × $0.06 = **$0.60/mese**
 
-### Quota Gemini Free Tier
+**Molto conveniente!** 💰
 
-- **15 richieste/minuto**
-- **1500 richieste/giorno**
-- **1M richieste/mese**
+### OpenAI Rate Limits (tier-based)
 
-Con questo setup dovresti usare circa **10-30 richieste/giorno** (una per championship attivo).
+Dipende dal tuo tier OpenAI (free, tier 1, tier 2, etc.):
+- **Free Tier**: 3 requests/min, 200 requests/day
+- **Tier 1**: 500 requests/min, illimitate al giorno
+- **Tier 2+**: 5000+ requests/min, illimitate
+
+Con questo setup dovresti usare circa **10-30 richieste/giorno** (una per championship attivo), quindi anche il tier gratuito è sufficiente per iniziare!
 
 ---
 
 ## 🚨 Troubleshooting
 
-### Error: "GEMINI_API_KEY not configured"
+### Error: "OPENAI_API_KEY not configured" ⚠️
 
 **Soluzione:**
 ```bash
 cd backend
-echo "GEMINI_API_KEY=AIzaSy..." >> .env
+echo "OPENAI_API_KEY=sk-proj-..." >> .env
 # Riavvia backend
 ```
 
@@ -227,8 +243,20 @@ echo "GEMINI_API_KEY=AIzaSy..." >> .env
 
 **Soluzione:**
 - Il sistema fa automaticamente **fallback a euristica**
-- Verifica quota su https://aistudio.google.com/
-- Considera upgrade a paid plan se necessario
+- Verifica utilizzo e limiti su https://platform.openai.com/usage
+- Considera aggiungere credito al tuo account OpenAI se necessario
+
+### Error: "Scanner mostra risultati diversi tra cloud e locale"
+
+**Problema:** Questo è il bug principale! Lo scanner su Railway mostra risultati euristici mentre in locale mostra AI.
+
+**Causa:** `OPENAI_API_KEY` non configurata su Railway.
+
+**Soluzione:**
+1. Vai su Railway Dashboard → Backend Service → Variables
+2. Aggiungi `OPENAI_API_KEY` con la tua chiave OpenAI
+3. Railway farà automaticamente un redeploy
+4. Verifica nei logs che non ci siano più errori "OPENAI_API_KEY not configured"
 
 ### Error: "Failed to fetch from backend"
 
@@ -307,31 +335,39 @@ DELETE FROM scanner_cache WHERE championship_id = 'specific-id';
 
 ## ✅ Checklist Completo
 
+**Setup Locale:**
 - [ ] Eseguito `scanner_cache_schema.sql` in Supabase
-- [ ] Aggiunto `GEMINI_API_KEY` a `backend/.env`
+- [ ] Aggiunto `OPENAI_API_KEY` a `backend/.env`
 - [ ] Aggiunto `VITE_BACKEND_URL` a `.env.local`
-- [ ] Installato `npm install @google/genai` nel backend
 - [ ] Riavviato backend con `npm run dev`
 - [ ] Riavviato frontend con `npm run dev`
 - [ ] Testato endpoint con curl
-- [ ] Verificato scanner nell'app
-- [ ] Controllato logs per conferma AI analysis
+- [ ] Verificato scanner nell'app mostra analisi AI (non euristiche)
+- [ ] Controllato logs per conferma "Calling OpenAI API..."
 - [ ] Verificato cache hit sulla seconda richiesta
+
+**Deploy Produzione (Railway):**
+- [ ] Aggiunto `OPENAI_API_KEY` nelle variabili Railway
+- [ ] Verificato redeploy automatico completato
+- [ ] Testato scanner in produzione - risultati AI
+- [ ] Controllato logs Railway per "[Scanner AI]"
 
 ---
 
 ## 🚀 Deploy to Production
 
-### Railway (Backend)
+### Railway (Backend) - IMPORTANTE! ⚠️
 
 1. Aggiungi env var nel Railway dashboard:
    ```
-   GEMINI_API_KEY=AIzaSy...
+   OPENAI_API_KEY=sk-proj-your_actual_openai_key
    ```
 
-2. Deploy automatico al push
+2. Deploy automatico al push (o redeploy manuale)
 
-3. Aggiorna frontend `.env.production`:
+3. **Verifica nei logs Railway** che non ci siano errori "OPENAI_API_KEY not configured"
+
+4. Aggiorna frontend `.env.production` (se necessario):
    ```
    VITE_BACKEND_URL=https://your-app.up.railway.app
    ```
@@ -348,12 +384,13 @@ curl -X POST https://your-app.up.railway.app/api/scanner/analyze \
 
 ## 🎉 Success!
 
-Il tuo AI Scanner è ora operativo! Gli utenti vedranno analisi intelligenti generate da Gemini invece delle semplici euristiche.
+Il tuo AI Scanner è ora operativo! Gli utenti vedranno analisi intelligenti generate da **OpenAI GPT-4o-mini** invece delle semplici euristiche.
 
 **Prossimi step:**
-- Monitora utilizzo quota Gemini
-- Tweaka il prompt AI per migliorare raccomandazioni
-- Consider adding more AI providers (OpenAI, Claude) come fallback
+- Monitora utilizzo quota su https://platform.openai.com/usage
+- Tweaka il prompt AI nel backend per migliorare raccomandazioni
+- Considera aggiungere più AI providers (Gemini, Claude) come fallback se necessario
+- Verifica che cloud e locale siano ora perfettamente allineati! ✅
 
 ---
 
