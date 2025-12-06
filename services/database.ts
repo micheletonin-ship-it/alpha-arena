@@ -1067,6 +1067,37 @@ export const deleteChampionship = async (id: string): Promise<void> => {
     }
 };
 
+// NEW: Add tickers to a championship's whitelist
+export const addTickersToChampionship = async (championshipId: string, newTickers: string[]): Promise<void> => {
+    try {
+        const championship = await getChampionshipById(championshipId);
+        if (!championship) {
+            throw new Error('Championship not found');
+        }
+
+        // Normalize tickers (uppercase, trim)
+        const normalizedNewTickers = newTickers.map(t => t.toUpperCase().trim()).filter(t => t.length > 0);
+        
+        // Get existing tickers
+        const existingTickers = championship.allowed_tickers || [];
+        
+        // Merge with existing, removing duplicates
+        const mergedTickers = Array.from(new Set([...existingTickers, ...normalizedNewTickers]));
+        
+        // Update championship
+        await updateChampionship({
+            ...championship,
+            ticker_restriction_enabled: true, // Enable restrictions when adding tickers
+            allowed_tickers: mergedTickers
+        });
+        
+        console.log(`Added ${normalizedNewTickers.length} tickers to championship ${championshipId}. Total: ${mergedTickers.length}`);
+    } catch (e: any) {
+        console.error('Error adding tickers to championship:', e);
+        throw e;
+    }
+};
+
 // Users do not directly "join" a championship table in DB,
 // their participation is implied by having holdings/transactions/logs
 // with that championship_id.

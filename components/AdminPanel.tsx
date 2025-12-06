@@ -568,6 +568,7 @@ const ChampionshipsManager: React.FC<ChampionshipsManagerProps> = ({
   onRefresh,
 }) => {
   const [participantCounts, setParticipantCounts] = useState<Map<string, number>>(new Map());
+  const [selectedChampForTickers, setSelectedChampForTickers] = useState<Championship | null>(null);
 
   useEffect(() => {
     loadParticipantCounts();
@@ -678,6 +679,7 @@ const ChampionshipsManager: React.FC<ChampionshipsManagerProps> = ({
                 <th className="px-4 py-3 text-left font-medium">Stato</th>
                 <th className="px-4 py-3 text-left font-medium">Date</th>
                 <th className="px-4 py-3 text-right font-medium">Partecipanti</th>
+                <th className="px-4 py-3 text-center font-medium">Ticker</th>
                 <th className="px-4 py-3 text-right font-medium">Cash Iniziale</th>
                 <th className="px-4 py-3 text-right font-medium">Quota</th>
                 <th className="px-4 py-3 text-center font-medium">Azioni</th>
@@ -707,6 +709,25 @@ const ChampionshipsManager: React.FC<ChampionshipsManagerProps> = ({
                     <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                       {participantCounts.get(champ.id) || 0}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {champ.ticker_restriction_enabled && champ.allowed_tickers && champ.allowed_tickers.length > 0 ? (
+                      <button
+                        onClick={() => setSelectedChampForTickers(champ)}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold transition-colors ${theme === 'dark' ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30' : 'bg-cyan-100 text-cyan-700 hover:bg-cyan-200'}`}
+                        title={`${champ.allowed_tickers.length} ticker consentiti - Click per gestire`}
+                      >
+                        🎯 {champ.allowed_tickers.length}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setSelectedChampForTickers(champ)}
+                        className={`text-xs ${theme === 'dark' ? 'text-gray-500 hover:text-gray-400' : 'text-gray-400 hover:text-gray-600'}`}
+                        title="Nessuna restrizione - Click per aggiungere"
+                      >
+                        ➕ Aggiungi
+                      </button>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right font-mono">
                     ${champ.starting_cash.toLocaleString()}
@@ -765,6 +786,191 @@ const ChampionshipsManager: React.FC<ChampionshipsManagerProps> = ({
           </table>
         </div>
       )}
+
+      {/* Add Ticker Modal */}
+      {selectedChampForTickers && (
+        <AddTickerModal
+          isOpen={!!selectedChampForTickers}
+          onClose={() => setSelectedChampForTickers(null)}
+          championship={selectedChampForTickers}
+          onSuccess={onRefresh}
+          theme={theme}
+        />
+      )}
+    </div>
+  );
+};
+
+// Add Ticker Modal Component
+interface AddTickerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  championship: Championship;
+  onSuccess: () => void;
+  theme: Theme;
+}
+
+const AddTickerModal: React.FC<AddTickerModalProps> = ({
+  isOpen,
+  onClose,
+  championship,
+  onSuccess,
+  theme,
+}) => {
+  const [tickerInput, setTickerInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  const existingTickers = championship.allowed_tickers || [];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    // Parse input (comma or space separated)
+    const newTickersRaw = tickerInput
+      .split(/[,\s]+/)
+      .map(t => t.trim().toUpperCase())
+      .filter(t => t.length > 0);
+
+    if (newTickersRaw.length === 0) {
+      setError('Inserisci almeno un ticker valido');
+      return;
+    }
+
+    // Validate ticker format (basic: only letters, 1-5 chars)
+    const invalidTickers = newTickersRaw.filter(t => !/^[A-Z]{1,5}$/.test(t));
+    if (invalidTickers.length > 0) {
+      setError(`Ticker non validi: ${invalidTickers.join(', ')}. Usa solo lettere (1-5 caratteri).`);
+      return;
+    }
+
+    // Check for duplicates
+    const duplicates = newTickersRaw.filter(t => existingTickers.includes(t));
+    if (duplicates.length > 0) {
+      setError(`Ticker già presenti: ${duplicates.join(', ')}`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await db.addTickersToChampionship(championship.id, newTickersRaw);
+      alert(`✅ Aggiunti ${newTickersRaw.length} ticker con successo!`);
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      console.error('Failed to add tickers:', err);
+      setError(err.message || 'Errore durante l\'aggiunta dei ticker');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className={`w-full max-w-2xl overflow-hidden rounded-2xl shadow-2xl ${theme === 'dark' ? 'bg-[#1E1E1E] border border-white/10' : 'bg-white border-gray-200'}`}>
+        {/* Header */}
+        <div className={`flex items-center justify-between border-b px-6 py-4 ${theme === 'dark' ? 'border-white/10' : 'border-gray-100'}`}>
+          <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            🎯 Aggiungi Ticker - {championship.name}
+          </h3>
+          <button onClick={onClose} className={`rounded-full p-1 transition-colors ${theme === 'dark' ? 'text-gray-400 hover:bg-white/10 hover:text-white' : 'text-gray-500 hover:bg-gray-100'}`}>
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <form onSubmit={handleSubmit} className="p-6">
+          {/* Info Alert */}
+          <div className={`mb-4 p-3 rounded-lg ${theme === 'dark' ? 'bg-cyan-500/10 border border-cyan-500/20' : 'bg-cyan-50 border border-cyan-200'}`}>
+            <p className="text-sm text-cyan-400">
+              💡 <strong>Info:</strong> Inserisci i ticker separati da virgola o spazio (es: AAPL, MSFT, TSLA)
+            </p>
+          </div>
+
+          {/* Existing Tickers */}
+          {existingTickers.length > 0 && (
+            <div className="mb-4">
+              <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                Ticker già consentiti ({existingTickers.length}):
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {existingTickers.map(ticker => (
+                  <span
+                    key={ticker}
+                    className={`inline-flex items-center px-2 py-1 rounded text-xs font-mono font-bold ${theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'}`}
+                  >
+                    {ticker}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Input Field */}
+          <div className="mb-4">
+            <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+              Nuovi Ticker:
+            </label>
+            <input
+              type="text"
+              value={tickerInput}
+              onChange={(e) => setTickerInput(e.target.value.toUpperCase())}
+              placeholder="AAPL, MSFT, TSLA"
+              className={`w-full px-4 py-2 rounded-lg border font-mono ${
+                theme === 'dark' 
+                  ? 'bg-white/5 border-white/10 text-white placeholder-gray-500' 
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+              } focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+              disabled={isSubmitting}
+              autoFocus
+            />
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+              <p className="text-sm text-red-400">❌ {error}</p>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                theme === 'dark' 
+                  ? 'bg-white/10 hover:bg-white/20 text-white' 
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+              }`}
+              disabled={isSubmitting}
+            >
+              Annulla
+            </button>
+            <button
+              type="submit"
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                theme === 'dark' 
+                  ? 'bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400' 
+                  : 'bg-cyan-500 hover:bg-cyan-600 text-white'
+              } disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
+              disabled={isSubmitting || !tickerInput.trim()}
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent"/>
+                  Aggiungendo...
+                </>
+              ) : (
+                <>✅ Aggiungi Ticker</>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
