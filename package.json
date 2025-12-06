@@ -17,6 +17,7 @@
     "@stripe/react-stripe-js": "^2.7.2",
     "@stripe/stripe-js": "^3.5.0",
     "@supabase/supabase-js": "^2.39.3",
+    "canvas": "^3.2.0",
     "lucide-react": "^0.554.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

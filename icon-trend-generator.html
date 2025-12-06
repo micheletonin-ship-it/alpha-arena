@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaArena Icon Generator - Trend Symbol</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #121212;
+            color: #fff;
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #10B981;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #888;
+            margin-bottom: 40px;
+        }
+        .canvas-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+        .canvas-wrapper {
+            background: #1E1E1E;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .canvas-wrapper h3 {
+            color: #10B981;
+            margin-top: 0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        canvas {
+            border: 2px solid #333;
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+            background: #000;
+        }
+        .download-btn {
+            background: #10B981;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 15px;
+            transition: all 0.2s;
+        }
+        .download-btn:hover {
+            background: #0ea571;
+            transform: translateY(-1px);
+        }
+        .info {
+            background: #1E1E1E;
+            border-left: 4px solid #10B981;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .info h3 {
+            color: #10B981;
+            margin-top: 0;
+        }
+        .download-all-btn {
+            background: #10B981;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 16px;
+            margin: 20px 0;
+            transition: all 0.2s;
+        }
+        .download-all-btn:hover {
+            background: #0ea571;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 AlphaArena Icon Generator</h1>
+    <p class="subtitle">Generatore di icone con simbolo di trend rialzista</p>
+
+    <div class="info">
+        <h3>📋 Informazioni</h3>
+        <p>Questo tool genera 4 icone PWA per AlphaArena con un simbolo di trend rialzista (freccia verde) su sfondo nero:</p>
+        <ul>
+            <li><strong>icon-192.png</strong> - Icona standard 192x192px</li>
+            <li><strong>icon-512.png</strong> - Icona standard 512x512px</li>
+            <li><strong>icon-maskable-192.png</strong> - Icona maskable 192x192px (con safe zone)</li>
+            <li><strong>icon-maskable-512.png</strong> - Icona maskable 512x512px (con safe zone)</li>
+        </ul>
+        <p><strong>Colori:</strong> Sfondo nero (#121212), Freccia verde neon (#10B981)</p>
+    </div>
+
+    <button class="download-all-btn" onclick="downloadAll()">⬇️ Scarica Tutte le Icone</button>
+
+    <div class="canvas-container">
+        <div class="canvas-wrapper">
+            <h3>icon-192.png (Standard)</h3>
+            <canvas id="icon-192" width="192" height="192"></canvas>
+            <button class="download-btn" onclick="downloadIcon('icon-192', 'icon-192.png')">Scarica</button>
+        </div>
+        
+        <div class="canvas-wrapper">
+            <h3>icon-512.png (Standard)</h3>
+            <canvas id="icon-512" width="512" height="512"></canvas>
+            <button class="download-btn" onclick="downloadIcon('icon-512', 'icon-512.png')">Scarica</button>
+        </div>
+        
+        <div class="canvas-wrapper">
+            <h3>icon-maskable-192.png (Maskable)</h3>
+            <canvas id="icon-maskable-192" width="192" height="192"></canvas>
+            <button class="download-btn" onclick="downloadIcon('icon-maskable-192', 'icon-maskable-192.png')">Scarica</button>
+        </div>
+        
+        <div class="canvas-wrapper">
+            <h3>icon-maskable-512.png (Maskable)</h3>
+            <canvas id="icon-maskable-512" width="512" height="512"></canvas>
+            <button class="download-btn" onclick="downloadIcon('icon-maskable-512', 'icon-maskable-512.png')">Scarica</button>
+        </div>
+    </div>
+
+    <script>
+        // Colori
+        const BACKGROUND = '#121212';
+        const NEON_GREEN = '#10B981';
+
+        // Funzione per disegnare la freccia di trend rialzista
+        function drawTrendArrow(ctx, size, isMaskable = false) {
+            // Per le icone maskable, riduciamo la dimensione per rispettare la safe zone (40%)
+            const scale = isMaskable ? 0.5 : 0.7;
+            const padding = size * (1 - scale) / 2;
+
+            // Sfondo nero
+            ctx.fillStyle = BACKGROUND;
+            ctx.fillRect(0, 0, size, size);
+
+            // Setup per la freccia
+            ctx.strokeStyle = NEON_GREEN;
+            ctx.fillStyle = NEON_GREEN;
+            ctx.lineWidth = size * 0.08;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Disegna la linea del trend che sale
+            ctx.beginPath();
+            const startX = padding;
+            const startY = size - padding;
+            const midX = padding + (size * scale * 0.4);
+            const midY = size - padding - (size * scale * 0.3);
+            const endX = size - padding;
+            const endY = padding;
+
+            ctx.moveTo(startX, startY);
+            // Linea con due segmenti per dare l'effetto di trend
+            ctx.lineTo(midX, midY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+
+            // Disegna la punta della freccia
+            const arrowSize = size * scale * 0.25;
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(endX - arrowSize * 0.6, endY + arrowSize * 0.4);
+            ctx.lineTo(endX - arrowSize * 0.4, endY);
+            ctx.lineTo(endX, endY - arrowSize * 0.4);
+            ctx.lineTo(endX + arrowSize * 0.4, endY);
+            ctx.lineTo(endX, endY + arrowSize * 0.6);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Genera tutte le icone
+        function generateIcons() {
+            // Icon 192 standard
+            const canvas192 = document.getElementById('icon-192');
+            const ctx192 = canvas192.getContext('2d');
+            drawTrendArrow(ctx192, 192, false);
+
+            // Icon 512 standard
+            const canvas512 = document.getElementById('icon-512');
+            const ctx512 = canvas512.getContext('2d');
+            drawTrendArrow(ctx512, 512, false);
+
+            // Icon maskable 192
+            const canvasMask192 = document.getElementById('icon-maskable-192');
+            const ctxMask192 = canvasMask192.getContext('2d');
+            drawTrendArrow(ctxMask192, 192, true);
+
+            // Icon maskable 512
+            const canvasMask512 = document.getElementById('icon-maskable-512');
+            const ctxMask512 = canvasMask512.getContext('2d');
+            drawTrendArrow(ctxMask512, 512, true);
+        }
+
+        // Funzione per scaricare una singola icona
+        function downloadIcon(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Funzione per scaricare tutte le icone
+        async function downloadAll() {
+            const icons = [
+                { id: 'icon-192', name: 'icon-192.png' },
+                { id: 'icon-512', name: 'icon-512.png' },
+                { id: 'icon-maskable-192', name: 'icon-maskable-192.png' },
+                { id: 'icon-maskable-512', name: 'icon-maskable-512.png' }
+            ];
+
+            for (const icon of icons) {
+                downloadIcon(icon.id, icon.name);
+                // Piccolo delay per evitare problemi con i download multipli
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            alert('✅ Tutte le icone sono state scaricate!\n\nRicordati di salvarle nella cartella public/icons/ del progetto.');
+        }
+
+        // Genera le icone al caricamento della pagina
+        generateIcons();
+    </script>
+</body>
+</html>

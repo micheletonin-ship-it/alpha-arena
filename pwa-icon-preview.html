@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaArena - PWA Icon Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 40px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #10B981;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .variant {
+            background: #2a2a2a;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .variant h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #10B981;
+        }
+        
+        .icon-preview {
+            width: 256px;
+            height: 256px;
+            background: #121212;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        
+        .icon-content {
+            font-size: 120px;
+            font-weight: 900;
+            letter-spacing: -8px;
+            line-height: 1;
+        }
+        
+        .a-white {
+            color: #FFFFFF;
+        }
+        
+        .a-green {
+            color: #10B981;
+        }
+        
+        .arrow {
+            color: #10B981;
+            font-size: 60px;
+            font-weight: bold;
+        }
+        
+        /* Variant 1: Freccia sopra */
+        .variant-1 .arrow {
+            position: absolute;
+            top: 30px;
+            right: 50px;
+            font-size: 50px;
+        }
+        
+        /* Variant 2: Freccia integrata */
+        .variant-2 .icon-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .variant-2 .arrow {
+            font-size: 70px;
+            margin: 0 -10px;
+        }
+        
+        /* Variant 3: Freccia in angolo */
+        .variant-3 .arrow {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 45px;
+        }
+        
+        .description {
+            color: #888;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-top: 15px;
+        }
+        
+        .sizes {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        
+        .size-badge {
+            background: #10B981;
+            color: black;
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        button {
+            background: #10B981;
+            color: black;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #0ea571;
+            transform: scale(1.05);
+        }
+        
+        .note {
+            background: #333;
+            border-left: 4px solid #10B981;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 40px;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .note h3 {
+            color: #10B981;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 AlphaArena PWA - Anteprima Icone</h1>
+    
+    <div class="container">
+        <!-- Variante 4: Solo AA -->
+        <div class="variant">
+            <h2>Variante 4: Solo AA (Minimalista)</h2>
+            <div class="icon-preview">
+                <div class="icon-content">
+                    <span class="a-white">A</span><span class="a-green">A</span>
+                </div>
+            </div>
+            <p class="description">
+                Design pulito e minimalista. Solo le due A: bianca e verde su sfondo nero. 
+                Logo riconoscibile e professionale, perfetto per icona app.
+            </p>
+            <div class="sizes">
+                <span class="size-badge">192x192</span>
+                <span class="size-badge">512x512</span>
+            </div>
+            <button onclick="alert('Hai scelto Variante 4! Dimmi \'Variante 4\' nella chat.')">
+                Scegli Questa
+            </button>
+        </div>
+        
+        <!-- Variante 5: Solo Freccia Zig-Zag -->
+        <div class="variant">
+            <h2>Variante 5: Solo Freccia Zig-Zag ⭐</h2>
+            <div class="icon-preview variant-5">
+                <svg width="200" height="200" viewBox="0 0 120 120">
+                    <!-- Freccia zig-zag esattamente come l'immagine -->
+                    <path d="M 25 95 L 25 70 L 45 70 L 45 50 L 65 50 L 65 30 L 85 30 L 85 20" 
+                          stroke="#10B981" 
+                          stroke-width="7" 
+                          fill="none" 
+                          stroke-linecap="square" 
+                          stroke-linejoin="miter"/>
+                    <!-- Punta freccia -->
+                    <path d="M 85 20 L 78 20 L 78 27 L 85 27 L 92 20 Z" 
+                          fill="#10B981"/>
+                    <path d="M 85 20 L 85 13 L 92 20 Z" 
+                          fill="#10B981"/>
+                </svg>
+            </div>
+            <p class="description">
+                <strong>Freccia zig-zag verde esattamente come il logo originale!</strong><br>
+                Simbolo perfetto di trading e crescita a gradini. Design professionale e iconico.
+            </p>
+            <div class="sizes">
+                <span class="size-badge">192x192</span>
+                <span class="size-badge">512x512</span>
+            </div>
+            <button onclick="alert('Hai scelto Variante 5! Dimmi \'Variante 5\' nella chat.')">
+                ⭐ Scegli Questa ⭐
+            </button>
+        </div>
+        
+        <!-- Variante 1 -->
+        <div class="variant">
+            <h2>Variante 1: Freccia Sopra</h2>
+            <div class="icon-preview variant-1">
+                <span class="arrow">↗</span>
+                <div class="icon-content">
+                    <span class="a-white">A</span><span class="a-green">A</span>
+                </div>
+            </div>
+            <p class="description">
+                La freccia è posizionata in alto a destra come "decorazione". 
+                Design pulito e professionale, indica crescita e movimento verso l'alto.
+            </p>
+            <div class="sizes">
+                <span class="size-badge">192x192</span>
+                <span class="size-badge">512x512</span>
+            </div>
+            <button onclick="alert('Hai scelto Variante 1! Dimmi \'Variante 1\' nella chat.')">
+                Scegli Questa
+            </button>
+        </div>
+        
+        <!-- Variante 2 -->
+        <div class="variant">
+            <h2>Variante 2: Freccia Integrata</h2>
+            <div class="icon-preview variant-2">
+                <div class="icon-content">
+                    <span class="a-white">A</span>
+                    <span class="arrow">↗</span>
+                    <span class="a-green">A</span>
+                </div>
+            </div>
+            <p class="description">
+                La freccia è integrata tra le due A, creando un flusso dinamico. 
+                Simboleggia il passaggio da un livello all'altro, progress continuo.
+            </p>
+            <div class="sizes">
+                <span class="size-badge">192x192</span>
+                <span class="size-badge">512x512</span>
+            </div>
+            <button onclick="alert('Hai scelto Variante 2! Dimmi \'Variante 2\' nella chat.')">
+                Scegli Questa
+            </button>
+        </div>
+        
+        <!-- Variante 3 -->
+        <div class="variant">
+            <h2>Variante 3: Freccia In Angolo</h2>
+            <div class="icon-preview variant-3">
+                <span class="arrow">↗</span>
+                <div class="icon-content">
+                    <span class="a-white">A</span><span class="a-green">A</span>
+                </div>
+            </div>
+            <p class="description">
+                La freccia piccola in alto a destra, discreta ma efficace. 
+                Le AA dominano l'icona, logo chiaro e riconoscibile. Minimalista.
+            </p>
+            <div class="sizes">
+                <span class="size-badge">192x192</span>
+                <span class="size-badge">512x512</span>
+            </div>
+            <button onclick="alert('Hai scelto Variante 3! Dimmi \'Variante 3\' nella chat.')">
+                Scegli Questa
+            </button>
+        </div>
+    </div>
+    
+    <div class="note" style="background: #2a1a3a; border-color: #a855f7;">
+        <h3>💡 Nuove Varianti Aggiunte:</h3>
+        <p style="margin-top: 10px; line-height: 1.6;">
+            <strong>Variante 4 (Solo AA):</strong> Design minimalista e pulito, perfetto per riconoscibilità immediata.<br>
+            <strong>Variante 5 (Solo Freccia):</strong> La freccia zig-zag del logo originale, iconica e dinamica per rappresentare il trading.
+        </p>
+    </div>
+    
+    <div class="note">
+        <h3>📱 Note Tecniche:</h3>
+        <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8;">
+            <li><strong>Colori:</strong> Sfondo nero (#121212), A bianca (#FFFFFF), A verde (#10B981), Freccia verde</li>
+            <li><strong>Dimensioni:</strong> Verranno generate in 192x192px, 512x512px + versioni maskable per Android</li>
+            <li><strong>Font:</strong> Bold sans-serif, ottimizzato per icone piccole</li>
+            <li><strong>Compatibilità:</strong> iOS, Android, Desktop - tutte le piattaforme</li>
+            <li><strong>Deploy:</strong> Automatico su Railway dopo build</li>
+        </ul>
+    </div>
+    
+    <div class="note" style="background: #1a3a2e; border-color: #10B981;">
+        <h3>✨ Prossimi Passi:</h3>
+        <p style="margin-top: 10px; line-height: 1.6;">
+            Dopo aver scelto la variante preferita, genererò le icone nelle dimensioni corrette, 
+            le sostituirò in <code style="background: #333; padding: 2px 6px; border-radius: 3px;">public/icons/</code>, 
+            farò il build e push su GitHub. Railway farà auto-deploy e la tua PWA avrà le nuove icone! 🚀
+        </p>
+    </div>
+</body>
+</html>
