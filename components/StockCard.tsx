@@ -7,9 +7,10 @@ interface StockCardProps {
   stock: Stock;
   theme?: Theme;
   onTrade?: (stock: Stock, type: 'buy' | 'sell') => void;
+  championshipStatus?: 'pending' | 'active' | 'finished' | 'archived'; // NEW: Track championship status for trading restrictions
 }
 
-export const StockCard: React.FC<StockCardProps> = ({ stock, theme = 'dark', onTrade }) => {
+export const StockCard: React.FC<StockCardProps> = ({ stock, theme = 'dark', onTrade, championshipStatus }) => {
   const isPositive = stock.changePercent >= 0;
 
   // Crypto names mapping
@@ -151,10 +152,13 @@ export const StockCard: React.FC<StockCardProps> = ({ stock, theme = 'dark', onT
       <div className="flex gap-2">
          <button 
             onClick={() => onTrade && onTrade(stock, 'buy')}
+            disabled={championshipStatus === 'finished'}
             className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                theme === 'dark' 
-                ? 'bg-neonGreen/10 text-neonGreen hover:bg-neonGreen hover:text-black' 
-                : 'bg-gray-100 text-gray-900 hover:bg-black hover:text-white'
+                championshipStatus === 'finished'
+                  ? 'opacity-40 cursor-not-allowed bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-gray-600'
+                  : theme === 'dark' 
+                    ? 'bg-neonGreen/10 text-neonGreen hover:bg-neonGreen hover:text-black' 
+                    : 'bg-gray-100 text-gray-900 hover:bg-black hover:text-white'
             }`}
          >
             Buy

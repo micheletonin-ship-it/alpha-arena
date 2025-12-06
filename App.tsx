@@ -96,6 +96,7 @@ const AppContent: React.FC = () => {
   const [currentChampionshipId, setCurrentChampionshipId] = useState<string | undefined>(undefined); // UPDATED: undefined if no championship
   const [currentChampionshipName, setCurrentChampionshipName] = useState<string | undefined>(undefined); // UPDATED: undefined if no championship
   const [currentChampionshipStartingCash, setCurrentChampionshipStartingCash] = useState<number | undefined>(undefined); // UPDATED: undefined if no championship
+  const [currentChampionshipStatus, setCurrentChampionshipStatus] = useState<'pending' | 'active' | 'finished' | 'archived' | undefined>(undefined); // NEW: Track championship status for trading restrictions
 
   // Data State
   const [holdings, setHoldings] = useState<Holding[]>([]);
@@ -374,6 +375,7 @@ const AppContent: React.FC = () => {
                 setCurrentChampionshipId(champ.id);
                 setCurrentChampionshipName(champ.name);
                 setCurrentChampionshipStartingCash(champ.starting_cash);
+                setCurrentChampionshipStatus(champ.status); // NEW: Load championship status
                 setActiveTab('portfolio'); // Open portfolio directly when user has a championship
                 // Load strategies after user and championship context are set
                 const loadedStrategies = await loadStrategyData(user.activeStrategyId);
@@ -386,6 +388,7 @@ const AppContent: React.FC = () => {
                 setCurrentChampionshipId(undefined); // UPDATED: undefined
                 setCurrentChampionshipName(undefined); // UPDATED: undefined
                 setCurrentChampionshipStartingCash(undefined); // UPDATED: undefined
+                setCurrentChampionshipStatus(undefined); // NEW: Clear championship status
                 setActiveTab('championships'); // Force user to select/join a championship
             }
         } else {
@@ -393,6 +396,7 @@ const AppContent: React.FC = () => {
             setCurrentChampionshipId(undefined); // UPDATED: undefined
             setCurrentChampionshipName(undefined); // UPDATED: undefined
             setCurrentChampionshipStartingCash(undefined); // UPDATED: undefined
+            setCurrentChampionshipStatus(undefined); // NEW: Clear championship status
             setActiveTab('championships'); // Force user to select/join a championship
         }
         
@@ -680,6 +684,13 @@ const AppContent: React.FC = () => {
           const currentUserId = currentUserRef.current.id;
           const currentChampId = currentChampionshipIdRef.current; // Use ref for latest championship ID
 
+          // NEW: Block AI agent if championship is finished
+          const championship = await db.getChampionshipById(currentChampId);
+          if (championship?.status === 'finished') {
+              console.log('[AI AGENT] Championship has ended. AI auto-trading disabled.');
+              return;
+          }
+
           // Refresh holdings to get the latest state (e.g., after previous agent action)
           await refreshUserData(currentUserId, currentChampId); // This updates `holdings` state
 
@@ -833,6 +844,13 @@ const AppContent: React.FC = () => {
         alert("Please select a championship to perform trades.");
         return;
       }
+      
+      // NEW: Block trading if championship is finished
+      if (currentChampionshipStatus === 'finished') {
+        alert("🏁 Championship Finished\n\nTrading is no longer allowed. This championship has ended.\n\nYou can view the final leaderboard in the Championships tab.");
+        return;
+      }
+      
       await refreshUserData(currentUser.id, currentChampionshipId); // Refresh balance in context
       setSelectedStock(stock);
       setTradeType(type);
@@ -845,6 +863,13 @@ const AppContent: React.FC = () => {
       if (!currentUser || !champId) { // UPDATED: require champId
           console.error("Cannot execute trade: User or Championship ID not available.");
           throw new Error("User or Championship context missing for trade execution.");
+      }
+      
+      // NEW: Safety check - Block if championship is finished
+      const championship = await db.getChampionshipById(champId);
+      if (championship?.status === 'finished') {
+          console.error("Cannot execute trade: Championship has ended.");
+          throw new Error("Trading is not allowed. This championship has ended.");
       }
       
       const totalValue = quantity * price;
@@ -1053,6 +1078,7 @@ const AppContent: React.FC = () => {
             setCurrentChampionshipId(champ.id);
             setCurrentChampionshipName(champ.name);
             setCurrentChampionshipStartingCash(champ.starting_cash);
+            setCurrentChampionshipStatus(champ.status); // NEW: Set championship status
             const updatedUser = { ...currentUser, current_championship_id: champ.id };
             await db.updateUser(updatedUser);
             setCurrentUser(updatedUser); // Update global user state
@@ -1064,6 +1090,7 @@ const AppContent: React.FC = () => {
             setCurrentChampionshipId(undefined); // UPDATED: undefined
             setCurrentChampionshipName(undefined); // UPDATED: undefined
             setCurrentChampionshipStartingCash(undefined); // UPDATED: undefined
+            setCurrentChampionshipStatus(undefined); // NEW: Clear championship status
             const updatedUser = { ...currentUser, current_championship_id: undefined }; // UPDATED: undefined
             await db.updateUser(updatedUser);
             setCurrentUser(updatedUser); // Update global user state
@@ -1311,6 +1338,7 @@ const AppContent: React.FC = () => {
                             stock={stock} 
                             theme={theme}
                             onTrade={handleOpenTradeModal}
+                            championshipStatus={currentChampionshipStatus}
                         />
                       ))}
                     </div>
@@ -1348,6 +1376,7 @@ const AppContent: React.FC = () => {
                     userBalance={buyingPower}
                     externalTotalEquity={totalEquity}
                     championshipId={currentChampionshipId} // UPDATED: now string
+                    championshipStatus={currentChampionshipStatus} // NEW: Pass championship status for trading restrictions
                     userEmail={currentUser.email} // NEW: for Realized P/L calculation
                 />
               );

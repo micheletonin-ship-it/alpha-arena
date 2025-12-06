@@ -13,10 +13,11 @@ interface PortfolioProps {
   userBalance: number; // Now represents buying power directly
   externalTotalEquity?: number;
   championshipId: string; // UPDATED: now mandatory string
+  championshipStatus?: 'pending' | 'active' | 'finished' | 'archived'; // NEW: Track championship status for trading restrictions
   userEmail: string; // NEW: needed to fetch transactions
 }
 
-export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holdings, onTrade, userBalance, externalTotalEquity, championshipId, userEmail }) => {
+export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holdings, onTrade, userBalance, externalTotalEquity, championshipId, championshipStatus, userEmail }) => {
   
   const [realizedPL, setRealizedPL] = useState(0);
 
@@ -107,6 +108,27 @@ export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holding
   
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Championship Finished Banner */}
+      {championshipStatus === 'finished' && (
+        <div className={`rounded-xl border p-4 ${theme === 'dark' ? 'bg-orange-500/10 border-orange-500/20' : 'bg-orange-50 border-orange-200'}`}>
+          <div className="flex items-center gap-3">
+            <div className={`rounded-full p-2 ${theme === 'dark' ? 'bg-orange-500/20' : 'bg-orange-100'}`}>
+              <svg className="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9 7a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1zm0 4a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1zm0 4a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <h3 className={`text-sm font-semibold ${theme === 'dark' ? 'text-orange-400' : 'text-orange-700'}`}>
+                🏁 Championship Finished
+              </h3>
+              <p className={`text-xs ${theme === 'dark' ? 'text-orange-300/80' : 'text-orange-600'}`}>
+                Trading is disabled. This championship has ended. View the final leaderboard in the Championships tab.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Stats Cards */}
       <div className="grid grid-cols-1">
         {/* Total Net Worth Card (Cash + Assets) - Full Width */}
@@ -230,13 +252,27 @@ export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holding
                     <div className="flex justify-end gap-2">
                         <button 
                             onClick={() => onTrade(holding, 'buy')}
-                            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${theme === 'dark' ? 'bg-neonGreen/10 text-neonGreen hover:bg-neonGreen/20' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                            disabled={championshipStatus === 'finished'}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                              championshipStatus === 'finished' 
+                                ? 'opacity-40 cursor-not-allowed bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-gray-600' 
+                                : theme === 'dark' 
+                                  ? 'bg-neonGreen/10 text-neonGreen hover:bg-neonGreen/20' 
+                                  : 'bg-green-100 text-green-700 hover:bg-green-200'
+                            }`}
                         >
                             Buy
                         </button>
                         <button 
                             onClick={() => onTrade(holding, 'sell')}
-                            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${theme === 'dark' ? 'bg-mutedRed/10 text-mutedRed hover:bg-mutedRed/20' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
+                            disabled={championshipStatus === 'finished'}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                              championshipStatus === 'finished'
+                                ? 'opacity-40 cursor-not-allowed bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-gray-600'
+                                : theme === 'dark' 
+                                  ? 'bg-mutedRed/10 text-mutedRed hover:bg-mutedRed/20' 
+                                  : 'bg-red-100 text-red-700 hover:bg-red-200'
+                            }`}
                         >
                             Sell
                         </button>
