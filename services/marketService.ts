@@ -362,14 +362,10 @@ export const getAIStrategyRecommendation = async (symbol: string): Promise<{ rec
 const generateHeuristicScanResults = (marketData: Stock[], strategies: Strategy[], allowedTickers?: string[]): ScanResult[] => {
     const heuristicResults: ScanResult[] = [];
     
-    // Use championship allowed tickers if provided, otherwise fallback to default scan candidates
-    const scanCandidates = allowedTickers && allowedTickers.length > 0 ? allowedTickers : [
-        'NVDA', 'AMD', 'TSLA', 'MSTR', 'COIN', 'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 
-        'JPM', 'BAC', 'GS', 'UNH', 'LLY', 
-        'WMT', 'PG', 'KO', 'PEP', 'COST', 
-        'XOM', 'CVX', 'BRK.B', 'JNJ', 'HD', 
-        'SBUX', 'NKE', 'PYPL', 'CRM', 'CSCO' 
-    ];
+    // Use championship allowed tickers if provided, otherwise use ALL tickers from marketData
+    const scanCandidates = allowedTickers && allowedTickers.length > 0 
+        ? allowedTickers 
+        : marketData.map(s => s.symbol);
 
     console.log('=== HEURISTIC SCANNER ===');
     console.log('📊 Scan candidates:', scanCandidates.length, 'tickers');
