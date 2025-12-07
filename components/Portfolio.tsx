@@ -237,7 +237,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holding
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="font-medium text-gray-900 dark:text-white">${holding.currentPrice.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                    <div className={`text-xs ${holding.dayChangePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    <div className={`text-xs ${holding.dayChangePercent >= 0 ? 'text-green-600 dark:text-neonGreen' : 'text-red-600 dark:text-mutedRed'}`}>
                       {holding.dayChangePercent > 0 ? '+' : ''}{holding.dayChangePercent.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
                     </div>
                   </td>
