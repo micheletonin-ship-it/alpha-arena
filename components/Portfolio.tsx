@@ -69,9 +69,22 @@ export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holding
       const totalReturn = currentValue - costBasis;
       const returnPercent = costBasis > 0 ? (totalReturn / costBasis) * 100 : 0;
       
-      // Calculate today's rough P/L
-      const prevCloseValue = currentValue / (1 + (dayChangePercent / 100));
-      const dayChangeAmount = currentValue - prevCloseValue;
+      // FIXED: Calculate today's P/L more accurately
+      // If dayChangePercent is 0 or very small, use totalReturn as proxy (likely bought today)
+      // Otherwise calculate based on previous close price
+      let dayChangeAmount = 0;
+      
+      if (Math.abs(dayChangePercent) < 0.01) {
+        // Very small price movement or no data - assume position opened today
+        // Today's P/L = all unrealized gain/loss
+        dayChangeAmount = totalReturn;
+      } else {
+        // Calculate previous close price from dayChangePercent
+        // Formula: prevClose = currentPrice / (1 + changePercent/100)
+        const prevClosePrice = currentPrice / (1 + (dayChangePercent / 100));
+        // Today's P/L = (currentPrice - prevClosePrice) * quantity
+        dayChangeAmount = (currentPrice - prevClosePrice) * holding.quantity;
+      }
 
       totalAssetValue += currentValue;
       totalCost += costBasis;
