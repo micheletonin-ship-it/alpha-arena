@@ -975,6 +975,10 @@ app.post('/api/scanner/analyze', async (req, res) => {
       });
     }
 
+    // Dynamic opportunity limit based on ticker count (80% of tickers, max 20)
+    const maxOpportunities = Math.min(Math.ceil(tickers.length * 0.8), 20);
+    console.log(`[Scanner AI] Dynamic limit: ${maxOpportunities} opportunities (80% of ${tickers.length} tickers)`);
+
     // Build AI prompt with market data
     const stockList = marketData ? marketData.map(s => 
       `${s.symbol} (${s.name}): $${s.price}, ${s.changePercent > 0 ? '+' : ''}${s.changePercent}%, Vol: ${s.volume}`
@@ -997,7 +1001,7 @@ Criteri di valutazione:
 - Caratteristiche settoriali (tech = aggressive, utilities = conservative, etc.)
 - Risk/reward profile
 
-Seleziona massimo 8 opportunità TOTALI (distribuite tra le 3 categorie).
+Seleziona massimo ${maxOpportunities} opportunità TOTALI (distribuite tra le 3 categorie).
 Per ogni opportunità, fornisci una ragione dettagliata e convincente (2-3 frasi).
 
 Rispondi SOLO in formato JSON valido:
@@ -1161,6 +1165,10 @@ app.post('/api/scanner/run/:championshipId', async (req, res) => {
 
     console.log(`[Scanner Run] Championship "${championship.name}" has ${tickers.length} tickers`);
 
+    // Dynamic opportunity limit based on ticker count (80% of tickers, max 20)
+    const maxOpportunities = Math.min(Math.ceil(tickers.length * 0.8), 20);
+    console.log(`[Scanner Run] Dynamic limit: ${maxOpportunities} opportunities (80% of ${tickers.length} tickers)`);
+
     // Build AI prompt
     const prompt = `Sei un analista finanziario esperto. Analizza questi ${tickers.length} titoli e identifica le migliori opportunità di trading.
 
@@ -1179,7 +1187,7 @@ Criteri di valutazione:
 - Caratteristiche settoriali (tech = aggressive, utilities = conservative, etc.)
 - Risk/reward profile
 
-Seleziona massimo 8 opportunità TOTALI (distribuite tra le 3 categorie).
+Seleziona massimo ${maxOpportunities} opportunità TOTALI (distribuite tra le 3 categorie).
 Per ogni opportunità, fornisci una ragione dettagliata e convincente (2-3 frasi).
 
 Rispondi SOLO in formato JSON valido:
