@@ -7,6 +7,7 @@ import { Settings } from './components/Settings';
 import { Strategies } from './components/Strategies';
 import { AgentMonitor } from './components/AgentMonitor'; 
 import { Scanner } from './Scanner'; 
+import { PersonalMarketOverview } from './components/PersonalMarketOverview';
 import { ChatBot } from './components/ChatBot';
 import { Login } from './components/Login';
 import { Welcome } from './components/Welcome';
@@ -22,10 +23,11 @@ import { fetchMarketData, scanMarketOpportunities } from './services/marketServi
 import { initCloud } from './services/cloud';
 import { analyzeHolding } from './services/tradingAgent';
 import *as db from './services/database';
-import { Stock, Theme, Source, Holding, User, Transaction, Strategy, ScanResult, ScanReport, Championship } from './types';
+import { Stock, Theme, Source, Holding, User, Transaction, Strategy, ScanResult, ScanReport, Championship, TradingContext } from './types';
 // Fix: Imported Trophy and Shield icons from lucide-react
 import { RefreshCw, Search, Bot, Zap, ExternalLink, Trophy, Shield } from 'lucide-react';
 import { APP_CREDENTIALS } from './credentials.config';
+import * as alpacaTradingService from './services/alpacaTradingService'; // Import Alpaca trading service
 
 // NEW: Trading Limits Constants
 const MAX_TRADE_AMOUNT = 10000; // $10,000 per trade
@@ -97,6 +99,10 @@ const AppContent: React.FC = () => {
   const [currentChampionshipName, setCurrentChampionshipName] = useState<string | undefined>(undefined); // UPDATED: undefined if no championship
   const [currentChampionshipStartingCash, setCurrentChampionshipStartingCash] = useState<number | undefined>(undefined); // UPDATED: undefined if no championship
   const [currentChampionshipStatus, setCurrentChampionshipStatus] = useState<'pending' | 'active' | 'finished' | 'archived' | undefined>(undefined); // NEW: Track championship status for trading restrictions
+
+  // NEW: Trading Context State (for Pro users with personal portfolio)
+  const [tradingContext, setTradingContext] = useState<TradingContext | undefined>(undefined); // Current trading context
+  const [availableChampionships, setAvailableChampionships] = useState<Championship[]>([]); // List of championships user has joined
 
   // Data State
   const [holdings, setHoldings] = useState<Holding[]>([]);
@@ -392,16 +398,21 @@ const AppContent: React.FC = () => {
                 setActiveTab('championships'); // Force user to select/join a championship
             }
         } else {
-            // No championship in user profile, force user to select/join
+            // No championship in user profile
             setCurrentChampionshipId(undefined); // UPDATED: undefined
             setCurrentChampionshipName(undefined); // UPDATED: undefined
             setCurrentChampionshipStartingCash(undefined); // UPDATED: undefined
             setCurrentChampionshipStatus(undefined); // NEW: Clear championship status
-            setActiveTab('championships'); // Force user to select/join a championship
+            
+            // Always start at portfolio for all users (both Basic and Pro)
+            setActiveTab('portfolio');
         }
         
         // If a user logs in and lands on championships, strategies still need to be loaded for general use.
         const loadedStrategies = await loadStrategyData(user.activeStrategyId); // Get strategies here
+        
+        // NEW: Initialize trading context for Pro users with personal portfolio
+        await initializeTradingContext(user);
         
     } catch (error) {
         console.error("Login error", error);
@@ -461,7 +472,7 @@ const AppContent: React.FC = () => {
     });
   };
 
-  // UPDATED: refreshUserData now requires championshipId
+  // UPDATED: refreshUserData now supports dual context (championship vs personal-portfolio)
   const refreshUserData = async (userId: string, champId: string | undefined = undefined) => { // Accept undefined
       // ADMIN BLOCK: Admins don't have portfolios, skip all user data refresh
       if (currentUserRef.current?.is_admin) {
@@ -473,14 +484,34 @@ const AppContent: React.FC = () => {
           return;
       }
       
-      if (!currentUserRef.current || !champId) { // UPDATED: skip if no champId
+      if (!currentUserRef.current) {
           setHoldings([]);
           setTransactions([]);
           setBuyingPower(0);
           setTotalEquity(0);
-          setDailyBuyCount(0); // NEW: Reset daily buy count
+          setDailyBuyCount(0);
           return; 
       }
+
+      // NEW: Check if we're in personal-portfolio mode
+      if (!champId) {
+          // If no championshipId, check if user has personal portfolio enabled
+          if (currentUserRef.current.accountType === 'Pro' && currentUserRef.current.personalPortfolioEnabled) {
+              console.log('📊 [refreshUserData] Personal portfolio mode - loading from Alpaca');
+              await loadPersonalPortfolioData(userId);
+          } else {
+              // No championship and no personal portfolio - clear data
+              setHoldings([]);
+              setTransactions([]);
+              setBuyingPower(0);
+              setTotalEquity(0);
+              setDailyBuyCount(0);
+          }
+          return;
+      }
+
+      // Championship mode: Load data from internal DB
+      console.log(`📊 [refreshUserData] Championship mode - loading from DB (${champId})`);
 
       // 1. Fetch holdings and transactions from internal DB, filtered by championshipId
       const userHoldings = await db.getHoldings(userId, champId); // Pass mandatory championshipId
@@ -551,11 +582,30 @@ const AppContent: React.FC = () => {
 
       const portfolioSymbols = currentHoldings.map(h => h.symbol);
       
-      // Check if championship has ticker restrictions
-      let championshipTickers: string[] = [];
-      let hasTickerRestrictions = false;
+      // NEW: Support for personal-portfolio mode (no championship)
+      // If user is Pro with personal portfolio enabled and no championship is active
+      const isPersonalPortfolioMode = !currentChampionshipIdRef.current && 
+                                      currentUserRef.current?.accountType === 'Pro' && 
+                                      currentUserRef.current?.personalPortfolioEnabled;
       
-      if (currentChampionshipIdRef.current) {
+      let allDynamicSymbols: string[] = [];
+      
+      if (isPersonalPortfolioMode) {
+        // Personal Portfolio Mode: Fetch symbols from personal holdings + watched
+        console.log('📊 [getData] Personal Portfolio Mode - fetching market data for personal holdings');
+        allDynamicSymbols = Array.from(new Set([...portfolioSymbols, ...currentWatched]));
+        
+        // If no symbols yet, add some default popular tickers for browsing
+        if (allDynamicSymbols.length === 0) {
+          allDynamicSymbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA'];
+          console.log('📊 [getData] No holdings yet, loading default popular tickers');
+        }
+      } else if (currentChampionshipIdRef.current) {
+        // Championship Mode: Check for ticker restrictions
+        console.log('📊 [getData] Championship Mode - fetching market data for championship');
+        let championshipTickers: string[] = [];
+        let hasTickerRestrictions = false;
+        
         try {
           const championship = await db.getChampionshipById(currentChampionshipIdRef.current);
           if (championship?.ticker_restriction_enabled && championship.allowed_tickers && championship.allowed_tickers.length > 0) {
@@ -565,13 +615,20 @@ const AppContent: React.FC = () => {
         } catch (error) {
           console.error("Error fetching championship tickers:", error);
         }
+        
+        // If championship has ticker restrictions, ONLY fetch those tickers
+        // Otherwise, fetch portfolio + watched + championship tickers
+        allDynamicSymbols = hasTickerRestrictions 
+          ? championshipTickers 
+          : Array.from(new Set([...portfolioSymbols, ...currentWatched, ...championshipTickers]));
+      } else {
+        // No championship and no personal portfolio - don't fetch data
+        console.log('📊 [getData] No active context - skipping market data fetch');
+        setStocks([]);
+        setLoading(false);
+        isFetchingRef.current = false;
+        return;
       }
-      
-      // If championship has ticker restrictions, ONLY fetch those tickers
-      // Otherwise, fetch portfolio + watched + championship tickers
-      const allDynamicSymbols = hasTickerRestrictions 
-        ? championshipTickers 
-        : Array.from(new Set([...portfolioSymbols, ...currentWatched, ...championshipTickers]));
       
       // Use backend proxy for Alpaca data
       const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -647,34 +704,57 @@ const AppContent: React.FC = () => {
   };
 
   // Effect to manage initial data fetching and polling interval
+  // NEW: Supports both championship and personal-portfolio modes
   useEffect(() => {
     let intervalId: ReturnType<typeof setInterval>;
 
     const startPolling = async () => {
-        if (!currentUser || !currentChampionshipId) { // UPDATED: Only poll if user and championship are active
-            // If no active championship, clear interval and do not fetch data.
+        // Check if we have an active context (championship OR personal portfolio)
+        const hasChampionship = !!currentChampionshipId;
+        const hasPersonalPortfolio = !currentChampionshipId && 
+                                     currentUser?.accountType === 'Pro' && 
+                                     currentUser?.personalPortfolioEnabled;
+        
+        if (!currentUser || (!hasChampionship && !hasPersonalPortfolio)) {
+            // No active context - clear interval and skip polling
+            console.log('📊 [Polling] No active context - stopping polling');
             if (intervalId) clearInterval(intervalId);
             return;
         }
         
+        // Determine polling interval based on context
+        let intervalTime = 60000; // Default: 1 minute
+        
+        if (hasPersonalPortfolio) {
+            // Personal Portfolio Mode: More frequent updates for real-time trading
+            console.log('📊 [Polling] Personal Portfolio Mode - polling every 30 seconds');
+            intervalTime = 30000; // 30 seconds for real-time Alpaca data
+        } else if (hasChampionship) {
+            // Championship Mode: Use backend config
+            console.log('📊 [Polling] Championship Mode - polling based on backend config');
+            const alpacaKey = APP_CREDENTIALS.ALPACA_KEY || null;
+            const alpacaSecret = APP_CREDENTIALS.ALPACA_SECRET || null;
+            const hasAlpaca = !!alpacaKey && !!alpacaSecret; 
+            intervalTime = hasAlpaca ? 30000 : 300000; // 30 seconds with Alpaca, 5 min without
+        }
+        
         // Initial fetch
+        console.log(`📊 [Polling] Starting with interval: ${intervalTime/1000}s`);
         getData(); 
         
-        // Get Alpaca keys from shared config - used for determining polling interval
-        const alpacaKey = APP_CREDENTIALS.ALPACA_KEY || null;
-        const alpacaSecret = APP_CREDENTIALS.ALPACA_SECRET || null;
-        const hasAlpaca = !!alpacaKey && !!alpacaSecret; 
-        const intervalTime = hasAlpaca ? 30000 : 300000; // 30 secondi con Alpaca, 5 min senza
-
+        // Set up polling interval
         intervalId = setInterval(getData, intervalTime);
     };
 
     startPolling();
 
     return () => {
-        if (intervalId) clearInterval(intervalId);
+        if (intervalId) {
+            console.log('📊 [Polling] Cleaning up interval');
+            clearInterval(intervalId);
+        }
     };
-  }, [currentUser, currentChampionshipId]); // Dependencies for getData() are handled by its internal logic and refs, add championshipId
+  }, [currentUser, currentChampionshipId, currentUser?.personalPortfolioEnabled]); // Track personal portfolio state
 
   // --- AI TRADING AGENT LOOP ---
   useEffect(() => {
@@ -1104,6 +1184,173 @@ const AppContent: React.FC = () => {
     }
   };
 
+  // NEW: Load available championships for Pro users with personal portfolio
+  const loadAvailableChampionships = async (userId: string): Promise<Championship[]> => {
+    try {
+      // Get all championships the user has joined
+      const allChampionships = await db.getChampionships(); // FIX: Use correct function name
+      
+      // Filter to only championships this user has joined (has transactions in) AND are active
+      const userChampionships: Championship[] = [];
+      for (const champ of allChampionships) {
+        // Only include championships with status 'active' in dropdown
+        if (champ.status !== 'active') continue;
+        
+        const userTransactions = await db.getTransactions(userId, champ.id);
+        if (userTransactions.length > 0) {
+          userChampionships.push(champ);
+        }
+      }
+      
+      return userChampionships;
+    } catch (error) {
+      console.error("Error loading available championships:", error);
+      return [];
+    }
+  };
+
+  // NEW: Initialize trading context for Pro users
+  const initializeTradingContext = async (user: User) => {
+    if (!user) return;
+
+    // Only Pro users with personal portfolio enabled get the trading context dropdown
+    if (user.accountType !== 'Pro' || !user.personalPortfolioEnabled) {
+      setTradingContext(undefined);
+      setAvailableChampionships([]);
+      return;
+    }
+
+    // Load available championships
+    const championships = await loadAvailableChampionships(user.id);
+    setAvailableChampionships(championships);
+
+    // Set initial trading context based on current championship
+    if (user.current_championship_id) {
+      const currentChamp = championships.find(c => c.id === user.current_championship_id);
+      if (currentChamp) {
+        setTradingContext({
+          type: 'championship',
+          id: currentChamp.id,
+          name: currentChamp.name
+        });
+      }
+    } else {
+      // Default to personal portfolio if no championship selected
+      setTradingContext({
+        type: 'personal-portfolio',
+        id: 'personal-portfolio',
+        name: 'Personal Portfolio'
+      });
+    }
+  };
+
+  // NEW: Load Personal Portfolio data from Alpaca API
+  const loadPersonalPortfolioData = async (userId: string) => {
+    try {
+      console.log('📊 [Personal Portfolio] Loading data from Alpaca API...');
+      
+      // Get user's Alpaca credentials
+      const credentials = await db.getAlpacaCredentials(userId);
+      if (!credentials.key || !credentials.secret) {
+        console.warn('⚠️ [Personal Portfolio] No Alpaca credentials found');
+        setHoldings([]);
+        setTransactions([]);
+        setBuyingPower(0);
+        setTotalEquity(0);
+        return;
+      }
+
+      // Fetch account info and positions from Alpaca
+      const [accountInfo, positions] = await Promise.all([
+        alpacaTradingService.getAccountInfo(credentials.key, credentials.secret),
+        alpacaTradingService.getPositions(credentials.key, credentials.secret)
+      ]);
+
+      console.log(`✅ [Personal Portfolio] Loaded ${positions.length} positions from Alpaca`);
+
+      // Convert Alpaca positions to Holding format (parse string values to numbers)
+      const holdings: Holding[] = positions.map(pos => ({
+        symbol: pos.symbol,
+        name: pos.symbol, // Alpaca doesn't provide company name in position, we'll enrich later
+        quantity: parseFloat(pos.qty),
+        avgPrice: parseFloat(pos.avg_entry_price),
+        peakPrice: parseFloat(pos.current_price), // Start with current price as peak
+        strategyId: 'manual', // Personal portfolio trades are manual
+        championshipId: 'personal-portfolio', // Special ID for personal portfolio
+      }));
+
+      setHoldings(holdings);
+      
+      // Set buying power from Alpaca account (parse string to number)
+      const buyingPower = parseFloat(accountInfo.buying_power);
+      const equity = parseFloat(accountInfo.equity);
+      
+      setBuyingPower(buyingPower);
+      setTotalEquity(equity);
+
+      // Transactions history from Alpaca would require fetching activities
+      // For now, we'll keep transactions empty for personal portfolio
+      setTransactions([]);
+      
+      console.log(`✅ [Personal Portfolio] Buying Power: $${buyingPower.toFixed(2)}, Equity: $${equity.toFixed(2)}`);
+
+    } catch (error) {
+      console.error('❌ [Personal Portfolio] Error loading data from Alpaca:', error);
+      // On error, clear data to show empty state
+      setHoldings([]);
+      setTransactions([]);
+      setBuyingPower(0);
+      setTotalEquity(0);
+      
+      // Show user-friendly error
+      alert(`Failed to load personal portfolio from Alpaca:\n${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease check your API credentials in Settings.`);
+    }
+  };
+
+  // NEW: Handle switching between trading contexts (championships ↔ personal portfolio)
+  const handleSwitchContext = async (newContext: TradingContext) => {
+    if (!currentUser) return;
+
+    console.log(`🔄 Switching trading context to: ${newContext.type} - ${newContext.name}`);
+
+    // Update trading context state
+    setTradingContext(newContext);
+
+    if (newContext.type === 'personal-portfolio') {
+      // Switching to Personal Portfolio
+      console.log('📊 Loading Personal Portfolio data from Alpaca...');
+      
+      // Clear current championship context
+      setCurrentChampionshipId(undefined);
+      setCurrentChampionshipName(undefined);
+      setCurrentChampionshipStartingCash(undefined);
+      setCurrentChampionshipStatus(undefined);
+
+      // Update user's current championship to undefined
+      const updatedUser = { ...currentUser, current_championship_id: undefined };
+      await db.updateUser(updatedUser);
+      setCurrentUser(updatedUser);
+
+      // Load personal portfolio data from Alpaca API
+      await loadPersonalPortfolioData(currentUser.id);
+
+      // Stay on current tab (portfolio most likely)
+      if (activeTab === 'championships') {
+        setActiveTab('portfolio');
+      }
+
+    } else if (newContext.type === 'championship') {
+      // Switching to a Championship
+      console.log(`🏆 Loading Championship: ${newContext.name}`);
+      
+      const championship = availableChampionships.find(c => c.id === newContext.id);
+      if (championship) {
+        // Use existing handleSetChampionshipContext to set championship
+        await handleSetChampionshipContext(championship);
+      }
+    }
+  };
+
   // Check if we should show the Welcome Page
   useEffect(() => {
     // Check URL parameters for email confirmation
@@ -1236,8 +1483,11 @@ const AppContent: React.FC = () => {
           );
       }
       
-      if (!currentChampionshipId) {
-          // If no championship is selected and not on the championships tab,
+      // NEW: Check if we're in personal-portfolio mode
+      const isPersonalPortfolioMode = tradingContext?.type === 'personal-portfolio';
+      
+      if (!currentChampionshipId && !isPersonalPortfolioMode) {
+          // If no championship is selected and not in personal portfolio mode,
           // redirect or show a message.
           return (
             <div className="flex flex-col items-center justify-center h-[calc(100vh-140px)] text-gray-500 animate-in fade-in">
@@ -1381,6 +1631,20 @@ const AppContent: React.FC = () => {
                 />
               );
           case 'scanner':
+              // NEW: If in personal portfolio mode, show PersonalMarketOverview instead of Scanner
+              if (isPersonalPortfolioMode) {
+                  return (
+                    <PersonalMarketOverview
+                        theme={theme}
+                        marketData={stocks}
+                        holdings={holdings}
+                        userId={currentUser.id}
+                        onTrade={(s, t) => handleOpenTradeModal(s, t)}
+                    />
+                  );
+              }
+              
+              // Championship mode: Show normal AI Scanner
               return (
                 <Scanner 
                     theme={theme}
@@ -1486,7 +1750,10 @@ const AppContent: React.FC = () => {
           currentUser={currentUser}
           currentChampionshipName={currentChampionshipName} // UPDATED: now string
           onLogout={handleLogout} // NEW: Log out handler for mobile sidebar
-          // Removed onSwitchToPersonalPortfolio
+          // NEW: Trading Context Props for Pro users
+          tradingContext={tradingContext}
+          availableChampionships={availableChampionships}
+          onSwitchContext={handleSwitchContext}
       >
         
         {renderContent()}
