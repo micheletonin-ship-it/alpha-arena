@@ -3,6 +3,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const Stripe = require('stripe');
 const { createClient } = require('@supabase/supabase-js');
+const cron = require('node-cron');
 require('dotenv').config();
 const { savePayment, joinChampionship, getChampionshipById } = require('./database');
 const { decrypt } = require('./security');
@@ -1271,6 +1272,167 @@ Rispondi SOLO in formato JSON valido:
     });
   }
 });
+
+// ===== AUTOMATED DAILY SCANNER =====
+
+/**
+ * Run daily scanner for all active championships
+ * Called by cron scheduler at 08:00 every day
+ */
+async function runDailyScanner() {
+  console.log('\n🤖 [Daily Scanner] ===== STARTING AUTOMATED SCAN =====');
+  console.log(`[Daily Scanner] Timestamp: ${new Date().toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}`);
+
+  if (!supabaseAdmin) {
+    console.error('[Daily Scanner] Supabase Admin not initialized. Cannot run scanner.');
+    return;
+  }
+
+  try {
+    // Get all active championships
+    const { data: championships, error } = await supabaseAdmin
+      .from('championships')
+      .select('id, name, allowed_tickers')
+      .eq('status', 'active');
+
+    if (error) {
+      console.error('[Daily Scanner] Error fetching championships:', error.message);
+      return;
+    }
+
+    if (!championships || championships.length === 0) {
+      console.log('[Daily Scanner] No active championships found. Nothing to scan.');
+      return;
+    }
+
+    console.log(`[Daily Scanner] Found ${championships.length} active championship(s)`);
+
+    // Run scanner for each championship
+    for (const championship of championships) {
+      try {
+        console.log(`\n[Daily Scanner] Processing: ${championship.name} (ID: ${championship.id})`);
+
+        const tickers = championship.allowed_tickers || [];
+        if (tickers.length === 0) {
+          console.log(`[Daily Scanner] Skip: ${championship.name} - No tickers configured`);
+          continue;
+        }
+
+        console.log(`[Daily Scanner] Analyzing ${tickers.length} tickers...`);
+
+        // Dynamic opportunity limit
+        const maxOpportunities = Math.min(Math.ceil(tickers.length * 0.8), 20);
+
+        // Build AI prompt
+        const prompt = `Sei un analista finanziario esperto. Analizza questi ${tickers.length} titoli e identifica le migliori opportunità di trading.
+
+Stock List:
+${tickers.join(', ')}
+
+Classifica i titoli in 3 categorie strategiche:
+1. **Conservative** (strat_conservative): Basso rischio, stabilità, titoli difensivi, volatilità bassa
+2. **Balanced** (strat_balanced): Rischio/reward moderato, crescita stabile, buon compromesso
+3. **Aggressive** (strat_aggressive): Alto rischio, alta crescita potenziale, volatilità elevata
+
+Criteri di valutazione:
+- Trend di prezzo recente e momentum
+- Volatilità e stabilità storica
+- Volume di scambio (interesse del mercato)
+- Caratteristiche settoriali (tech = aggressive, utilities = conservative, etc.)
+- Risk/reward profile
+
+Seleziona massimo ${maxOpportunities} opportunità TOTALI (distribuite tra le 3 categorie).
+Per ogni opportunità, fornisci una ragione dettagliata e convincente (2-3 frasi).
+
+Rispondi SOLO in formato JSON valido:
+{
+  "results": [
+    {
+      "symbol": "AAPL",
+      "categoryId": "strat_conservative",
+      "reason": "Apple mostra stabilità eccellente con volatilità contenuta. Leader tecnologico con business model diversificato e cash flow robusto. Ideale per profilo conservativo."
+    }
+  ]
+}`;
+
+        // Use OpenAI API
+        const OPENAI_KEY = process.env.OPENAI_API_KEY;
+        
+        if (!OPENAI_KEY) {
+          console.error(`[Daily Scanner] OPENAI_API_KEY not configured. Skipping ${championship.name}`);
+          continue;
+        }
+
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: 'You are a professional financial analyst. Always respond in valid JSON format.' },
+              { role: 'user', content: prompt }
+            ],
+            response_format: { type: 'json_object' },
+            max_tokens: 2048,
+            temperature: 0.7
+          })
+        });
+
+        if (!openaiResponse.ok) {
+          const error = await openaiResponse.json();
+          console.error(`[Daily Scanner] OpenAI error for ${championship.name}:`, error.error?.message);
+          continue;
+        }
+
+        const openaiData = await openaiResponse.json();
+        const aiText = openaiData.choices[0]?.message?.content || '{}';
+        const analysisData = JSON.parse(aiText);
+        const results = analysisData.results || [];
+
+        console.log(`[Daily Scanner] ✅ Found ${results.length} opportunities for ${championship.name}`);
+
+        // Cache results
+        if (results.length > 0) {
+          const { error: cacheError } = await supabaseAdmin
+            .from('scanner_cache')
+            .upsert({
+              championship_id: championship.id,
+              results: results,
+              timestamp: new Date().toISOString(),
+              source: 'AI'
+            }, {
+              onConflict: 'championship_id'
+            });
+
+          if (cacheError) {
+            console.error(`[Daily Scanner] Cache save error for ${championship.name}:`, cacheError.message);
+          } else {
+            console.log(`[Daily Scanner] ✅ Cached results for ${championship.name}`);
+          }
+        }
+
+      } catch (champError) {
+        console.error(`[Daily Scanner] Error processing ${championship.name}:`, champError.message);
+      }
+    }
+
+    console.log('\n🤖 [Daily Scanner] ===== SCAN COMPLETED =====\n');
+
+  } catch (error) {
+    console.error('[Daily Scanner] Fatal error:', error.message);
+  }
+}
+
+// Schedule daily scanner at 08:00 AM (Europe/Rome timezone)
+cron.schedule('0 8 * * *', runDailyScanner, {
+  timezone: 'Europe/Rome',
+  scheduled: true
+});
+
+console.log('⏰ Daily scanner scheduled: Every day at 08:00 AM (Europe/Rome)');
 
 // Start server
 app.listen(PORT, () => {
