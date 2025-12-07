@@ -70,6 +70,37 @@ const STOCK_NAMES = {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// ===== MARKET DATA CACHE (IN-MEMORY) =====
+// Global cache to reduce Alpaca API calls with multiple users
+const marketDataCache = {
+  data: null,
+  timestamp: 0,
+  requestedSymbols: [], // Track which symbols were in the cached request
+  CACHE_DURATION: 30000 // 30 seconds - same as frontend polling
+};
+
+// Helper function to check if cache is valid for requested symbols
+function isCacheValid(requestedSymbols) {
+  const now = Date.now();
+  const cacheAge = now - marketDataCache.timestamp;
+  
+  // Cache is invalid if:
+  // 1. No cached data exists
+  // 2. Cache is older than CACHE_DURATION
+  // 3. Requested symbols don't match cached symbols (different user needs)
+  if (!marketDataCache.data || cacheAge >= marketDataCache.CACHE_DURATION) {
+    return false;
+  }
+  
+  // Check if all requested symbols are in the cache
+  const cachedSymbolsSet = new Set(marketDataCache.requestedSymbols);
+  const allSymbolsCached = requestedSymbols.every(s => cachedSymbolsSet.has(s));
+  
+  // If requested symbols are a subset of cached symbols, cache is valid
+  // This allows serving smaller requests from a larger cached dataset
+  return allSymbolsCached;
+}
+
 // CORS Configuration - Dynamic for Railway
 const allowedOrigins = [
   'http://localhost:5173',
@@ -135,6 +166,29 @@ app.post('/api/market-data', async (req, res) => {
         provider: 'Alpaca'
       });
     }
+
+    // ===== CHECK CACHE FIRST =====
+    if (isCacheValid(symbols)) {
+      const now = Date.now();
+      const cacheAge = now - marketDataCache.timestamp;
+      console.log(`[Alpaca Proxy] 📦 CACHE HIT! Serving cached data (age: ${Math.round(cacheAge/1000)}s)`);
+      
+      // Filter cached data to return only requested symbols
+      const requestedSymbolsSet = new Set(symbols.map(s => s.toUpperCase()));
+      const filteredStocks = marketDataCache.data.stocks.filter(stock => 
+        requestedSymbolsSet.has(stock.symbol.toUpperCase())
+      );
+      
+      return res.json({
+        success: true,
+        stocks: filteredStocks,
+        provider: 'Alpaca',
+        cached: true,
+        cacheAge: Math.round(cacheAge/1000) // Return age in seconds
+      });
+    }
+
+    console.log('[Alpaca Proxy] 🔄 CACHE MISS - Fetching fresh data from Alpaca...');
 
     // Read Alpaca credentials from environment
     const ALPACA_KEY = process.env.ALPACA_KEY;
@@ -337,12 +391,23 @@ app.post('/api/market-data', async (req, res) => {
       console.log('[Alpaca Proxy] MISSING SYMBOLS:', missingSymbols);
     }
     
-    console.log('[Alpaca Proxy] ===== REQUEST END =====');
-    
-    res.json({
+    // ===== SAVE TO CACHE =====
+    const responseData = {
       success: true,
       stocks: allStocks,
       provider: 'Alpaca'
+    };
+    
+    marketDataCache.data = responseData;
+    marketDataCache.timestamp = Date.now();
+    marketDataCache.requestedSymbols = symbols.map(s => s.toUpperCase());
+    
+    console.log('[Alpaca Proxy] ✅ Data cached successfully for 30 seconds');
+    console.log('[Alpaca Proxy] ===== REQUEST END =====');
+    
+    res.json({
+      ...responseData,
+      cached: false
     });
 
   } catch (error) {
