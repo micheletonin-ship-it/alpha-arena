@@ -699,9 +699,10 @@ interface LeaderboardModalProps {
     theme: Theme;
     error: string | null;
     prizePoolInfo?: PrizePoolInfo | null; // NEW: Prize pool information
+    currentUserEmail: string; // NEW: Current user email for highlighting
 }
 
-const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onClose, championship, leaderboardData, isLoading, theme, error, prizePoolInfo }) => {
+const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onClose, championship, leaderboardData, isLoading, theme, error, prizePoolInfo, currentUserEmail }) => {
     if (!isOpen || !championship) return null;
 
     return (
@@ -743,10 +744,30 @@ const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ isOpen, onClose, ch
                                 <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                                     {leaderboardData.map((entry) => {
                                         const isReturnPositive = entry.totalReturn >= 0;
+                                        const isCurrentUser = entry.user_email === currentUserEmail;
                                         return (
-                                            <tr key={entry.user_email} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                            <tr key={entry.user_email} className={`transition-colors ${
+                                                isCurrentUser 
+                                                    ? (theme === 'dark' 
+                                                        ? 'bg-neonGreen/10 border-l-4 border-neonGreen hover:bg-neonGreen/15' 
+                                                        : 'bg-green-50 border-l-4 border-green-500 hover:bg-green-100')
+                                                    : 'hover:bg-gray-50 dark:hover:bg-white/5'
+                                            }`}>
                                             <td className="px-4 py-2 font-semibold">{entry.rank}</td>
-                                            <td className="px-4 py-2 whitespace-nowrap">{entry.user_name}</td>
+                                            <td className="px-4 py-2 whitespace-nowrap">
+                                                <div className="flex items-center gap-2">
+                                                    {entry.user_name}
+                                                    {isCurrentUser && (
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
+                                                            theme === 'dark' 
+                                                                ? 'bg-neonGreen text-black' 
+                                                                : 'bg-green-500 text-white'
+                                                        }`}>
+                                                            You
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td className={`px-4 py-2 text-right font-bold ${entry.totalNetWorth >= championship.starting_cash ? (theme === 'dark' ? 'text-neonGreen' : 'text-green-700') : (theme === 'dark' ? 'text-mutedRed' : 'text-red-700')}`}>
                                                 ${entry.totalNetWorth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </td>
@@ -1781,6 +1802,7 @@ export const Championships: React.FC<ChampionshipsProps> = ({ theme, currentUser
             theme={theme}
             error={leaderboardError}
             prizePoolInfo={selectedChampionshipForLeaderboard ? prizePoolsCache.get(selectedChampionshipForLeaderboard.id) || null : null}
+            currentUserEmail={currentUser.email}
         />
 
         <ConfirmModal
