@@ -170,7 +170,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holding
                   <span className="text-xs text-gray-500 dark:text-gray-400">Total Return (Unrealized)</span>
                   <div className={`flex items-center gap-1 text-lg font-semibold ${isPositive ? 'text-green-600 dark:text-neonGreen' : 'text-red-600 dark:text-mutedRed'}`}>
                     {isPositive ? '+' : ''}${portfolioStats.totalReturn.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                    <span className="text-sm">({portfolioStats.totalReturnPercent.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)</span>
+                    <span className="text-sm">({portfolioStats.totalReturnPercent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%)</span>
                   </div>
                 </div>
                 <div className="h-8 w-px bg-gray-200 dark:bg-white/10"></div>
@@ -238,7 +238,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holding
                   <td className="px-6 py-4 text-right">
                     <div className="font-medium text-gray-900 dark:text-white">${holding.currentPrice.toFixed(2)}</div>
                     <div className={`text-xs ${holding.dayChangePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {holding.dayChangePercent > 0 ? '+' : ''}{holding.dayChangePercent.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
+                      {holding.dayChangePercent > 0 ? '+' : ''}{holding.dayChangePercent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -258,7 +258,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holding
                       {holding.totalReturn >= 0 ? '+' : ''}${holding.totalReturn.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                     </div>
                     <div className={`text-xs ${holding.totalReturn >= 0 ? 'text-green-600 dark:text-neonGreen' : 'text-red-600 dark:text-mutedRed'}`}>
-                      {holding.returnPercent.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
+                      {holding.returnPercent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
