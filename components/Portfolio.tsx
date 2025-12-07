@@ -185,7 +185,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ marketData, theme, holding
                   <span className="text-xs text-gray-500 dark:text-gray-400">Today's P/L</span>
                   <div className={`flex items-center gap-1 text-lg font-semibold ${portfolioStats.dayChangeTotal >= 0 ? 'text-green-600 dark:text-neonGreen' : 'text-red-600 dark:text-mutedRed'}`}>
                     {portfolioStats.dayChangeTotal >= 0 ? <ArrowUpRight size={16}/> : <ArrowDownRight size={16}/>}
-                    ${Math.abs(portfolioStats.dayChangeTotal).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    {portfolioStats.dayChangeTotal >= 0 ? '+' : '-'}${Math.abs(portfolioStats.dayChangeTotal).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </div>
                 </div>
               </div>
