@@ -326,32 +326,36 @@ export const fetchMarketData = async (additionalSymbols: string[] = [], alpacaKe
 
 export const getAIStrategyRecommendation = async (symbol: string): Promise<{ recommendedId: string; reason: string }> => {
     try {
-        const prompt = `
-            Analyze the stock "${symbol}". Based on its historical volatility, beta, momentum, and sector, recommend the best trading strategy from this list:
-            
-            1. 'strat_conservative' (Low volatility, defensive stocks. Tight stops.)
-            2. 'strat_balanced' (Standard growth stocks. Medium stops.)
-            3. 'strat_aggressive' (High volatility/crypto/tech. Wide stops.)
-
-            Return a JSON object with:
-            - recommendedId: string (one of the IDs above)
-            - reason: string (max 15 words explaining why)
-        `;
-
-        // USE CENTRAL AI SERVICE (without googleSearch to ensure JSON mode works)
-        const aiResponse: AIResponse = await generateAIContent(prompt, { jsonMode: true });
+        // Call backend API (uses centralized OpenAI key)
+        const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
         
-        // generateAIContent now throws an Error if it can't produce content
-        let jsonString = aiResponse.text.replace(/```json/g, '').replace(/```/g, '').trim();
-        const result = JSON.parse(jsonString);
+        console.log(`[AI Strategy] Calling backend for ${symbol}...`);
+        
+        const response = await fetch(`${backendUrl}/api/ai/strategy-suggestion`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ symbol })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Backend AI analysis failed');
+        }
+
+        const data = await response.json();
+        
+        console.log(`[AI Strategy] Backend recommendation for ${symbol}:`, data.recommendedId);
         
         return {
-            recommendedId: result.recommendedId || 'strat_balanced',
-            reason: result.reason || 'AI analysis incomplete, defaulted to Balanced.'
+            recommendedId: data.recommendedId || 'strat_balanced',
+            reason: data.reason || 'AI analysis incomplete, defaulted to Balanced.'
         };
 
     } catch (e: any) {
-        // No silent fallback here. Re-throw the error to be handled by TradeModal.tsx
+        console.error('[AI Strategy] Error:', e.message);
+        // Re-throw the error to be handled by TradeModal.tsx
         throw e;
     }
 };

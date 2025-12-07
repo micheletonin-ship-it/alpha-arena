@@ -1273,6 +1273,94 @@ Rispondi SOLO in formato JSON valido:
   }
 });
 
+// ===== AI STRATEGY SUGGESTION ENDPOINT =====
+
+/**
+ * AI Strategy Suggestion
+ * Analyzes a stock symbol and recommends the best trading strategy
+ */
+app.post('/api/ai/strategy-suggestion', async (req, res) => {
+  try {
+    const { symbol } = req.body;
+
+    console.log(`[AI Strategy] Request for symbol: ${symbol}`);
+
+    if (!symbol) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Missing required field: symbol' 
+      });
+    }
+
+    // Use OpenAI API
+    const OPENAI_KEY = process.env.OPENAI_API_KEY;
+
+    if (!OPENAI_KEY) {
+      console.error('[AI Strategy] OPENAI_API_KEY not configured');
+      return res.status(500).json({
+        success: false,
+        error: 'AI service not configured',
+        message: 'Please configure OPENAI_API_KEY environment variable'
+      });
+    }
+
+    const prompt = `Analyze the stock "${symbol}". Based on its historical volatility, beta, momentum, and sector, recommend the best trading strategy from this list:
+
+1. 'strat_conservative' (Low volatility, defensive stocks. Tight stops.)
+2. 'strat_balanced' (Standard growth stocks. Medium stops.)
+3. 'strat_aggressive' (High volatility/crypto/tech. Wide stops.)
+
+Return a JSON object with:
+- recommendedId: string (one of the IDs above)
+- reason: string (max 15 words explaining why)`;
+
+    console.log('[AI Strategy] Calling OpenAI API...');
+
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are a professional financial analyst. Always respond in valid JSON format.' },
+          { role: 'user', content: prompt }
+        ],
+        response_format: { type: 'json_object' },
+        max_tokens: 256,
+        temperature: 0.7
+      })
+    });
+
+    if (!openaiResponse.ok) {
+      const error = await openaiResponse.json();
+      throw new Error(`OpenAI API error: ${error.error?.message || openaiResponse.statusText}`);
+    }
+
+    const openaiData = await openaiResponse.json();
+    const aiText = openaiData.choices[0]?.message?.content || '{}';
+    const result = JSON.parse(aiText);
+
+    console.log(`[AI Strategy] Recommendation for ${symbol}: ${result.recommendedId}`);
+
+    res.json({
+      success: true,
+      recommendedId: result.recommendedId || 'strat_balanced',
+      reason: result.reason || 'AI analysis incomplete, defaulted to Balanced.'
+    });
+
+  } catch (error) {
+    console.error('[AI Strategy Error]:', error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'AI analysis failed',
+      message: error.message 
+    });
+  }
+});
+
 // ===== AUTOMATED DAILY SCANNER =====
 
 /**
