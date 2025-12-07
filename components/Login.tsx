@@ -297,7 +297,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
            <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
                 <div>
-                   <label className={`mb-1.5 block text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Full Name</label>
+                   <label className={`mb-1.5 block text-sm font-medium ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>Name</label>
                    <div className={`flex items-center rounded-xl border px-4 py-3 transition-colors focus-within:border-neonGreen ${theme === 'dark' ? 'border-white/10 bg-white/5' : 'border-gray-200 bg-gray-50'}`}>
                       <UserIcon size={20} className="text-gray-400" />
                       <input 
@@ -305,7 +305,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, theme, isLoading: externa
                         required={!isLogin}
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="John Doe"
+                        placeholder="John"
                         className={`ml-3 w-full bg-transparent text-sm outline-none ${theme === 'dark' ? 'text-white placeholder:text-gray-600' : 'text-gray-900 placeholder:text-gray-400'}`}
                       />
                    </div>
