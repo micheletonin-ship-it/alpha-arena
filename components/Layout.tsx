@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { NavItem, Theme, User, TradingContext, Championship } from '../types'; // Import User type and TradingContext
 import { LayoutDashboard, Settings, Sun, Moon, BarChart2, Menu, X, DollarSign, BrainCircuit, Activity, Bot, Radar, LineChart, User as UserIcon, Trophy, Briefcase, Shield, TrendingUp, LogOut, ChevronDown, Wallet, Zap } from 'lucide-react'; // Added ChevronDown, Wallet, Zap
 import { getUserColor } from '../services/utils'; // Import shared utility function
-import { ProUpgradeModal } from './ProUpgradeModal'; // NEW: Pro upgrade modal
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -37,7 +36,6 @@ export const Layout: React.FC<LayoutProps> = ({
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isContextDropdownOpen, setIsContextDropdownOpen] = useState(false);
-  const [isProModalOpen, setIsProModalOpen] = useState(false); // NEW: Pro modal state
 
   // Base navigation items (for regular users/players)
   const playerNavItems: NavItem[] = [
@@ -151,7 +149,7 @@ export const Layout: React.FC<LayoutProps> = ({
                   <Menu size={24} />
                </button>
                
-               {/* Trading Context Dropdown (Pro Users) OR Upgrade Badge (Basic Users) */}
+               {/* Trading Context Dropdown (Pro Users Only) */}
                {currentUser?.accountType === 'Pro' && currentUser?.personalPortfolioEnabled && tradingContext && onSwitchContext ? (
                  <div className="relative">
                    <button
@@ -248,31 +246,8 @@ export const Layout: React.FC<LayoutProps> = ({
                      </div>
                    )}
                  </div>
-               ) : currentUser?.accountType === 'Basic' ? (
-                 /* Upgrade Badge for Basic Users */
-                 <div className="flex items-center gap-3">
-                   <button
-                     onClick={() => setIsProModalOpen(true)}
-                     className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold text-sm shadow-lg hover:scale-105 transition-all animate-pulse hover:animate-none"
-                   >
-                     <Zap size={16} fill="currentColor" />
-                     Go Pro
-                   </button>
-                   <h1 className={`text-xl font-bold hidden sm:block ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                     {currentChampionshipName ? (
-                        <span className="flex items-center gap-2">
-                            <Trophy size={18} className="text-yellow-500"/>
-                            {currentChampionshipName}
-                        </span>
-                     ) : (
-                        <span>
-                            {activeTab.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                        </span>
-                     )}
-                   </h1>
-                 </div>
                ) : (
-                 /* Fallback: Standard Title for when context not available */
+                 /* Fallback: Standard Title for Basic users or when context not available */
                  <h1 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                    {currentChampionshipName ? (
                       <span className="flex items-center gap-2">
@@ -390,17 +365,6 @@ export const Layout: React.FC<LayoutProps> = ({
              </div>
           </aside>
         </div>
-      )}
-
-      {/* Pro Upgrade Modal */}
-      {currentUser && (
-        <ProUpgradeModal
-          isOpen={isProModalOpen}
-          onClose={() => setIsProModalOpen(false)}
-          theme={theme}
-          userEmail={currentUser.email}
-          userName={currentUser.name}
-        />
       )}
 
     </div>

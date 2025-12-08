@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Theme, User, AIProvider } from '../types';
-import { User as UserIcon, Bell, Shield, Moon, Sun, Smartphone, LogOut, ChevronRight, Key, CheckCircle, Save, Cloud, Activity, Bot, X, Sparkles, Zap, BrainCircuit, Camera, CreditCard, Lock } from 'lucide-react'; // Added Lock
+import { User as UserIcon, Bell, Shield, Moon, Sun, Smartphone, LogOut, ChevronRight, Key, CheckCircle, Save, Cloud, Activity, Bot, X, Sparkles, Zap, BrainCircuit, Camera, CreditCard } from 'lucide-react'; // Added CreditCard
 import { encrypt, decrypt } from '../services/security';
 import { initCloud, syncKeysToCloud, checkConnection } from '../services/cloud';
 import * as db from '../services/database';
@@ -8,7 +8,6 @@ import * as marketService from '../services/marketService'; // Import marketServ
 import * as aiService from '../services/aiService'; // Import aiService for AI key test
 import { APP_CREDENTIALS } from '../credentials.config';
 import { getUserColor } from '../services/utils'; // Import shared utility function
-import { ProUpgradeModal } from './ProUpgradeModal'; // NEW: Pro upgrade modal
 
 interface SettingsProps {
   theme: Theme;
@@ -74,7 +73,6 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme, user, on
   const [priceAlerts, setPriceAlerts] = useState(true);
   const [twoFactor, setTwoFactor] = useState(false);
   const [autoTrading, setAutoTrading] = useState(user.autoTradingEnabled || false);
-  const [isProModalOpen, setIsProModalOpen] = useState(false); // NEW: Pro modal state
   
   // ALPACA KEYS - Used for both market data AND personal portfolio
   const [alpacaKey, setAlpacaKey] = useState(() => user.alpaca_key ? decrypt(user.alpaca_key) : '');
@@ -486,32 +484,9 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme, user, on
                 </div>
             </Section>
 
-            {/* 3. PRO ACCOUNT - PERSONAL PORTFOLIO (Always show, but locked for Basic) */}
-            <Section title="🏆 Pro Account - Personal Portfolio" theme={theme}>
-                <div className="relative">
-                    {/* Locked Overlay for Basic Users */}
-                    {user.accountType === 'Basic' && (
-                        <div 
-                            className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-10 rounded-xl cursor-pointer transition-all hover:bg-black/60"
-                            onClick={() => setIsProModalOpen(true)}
-                        >
-                            <div className="text-center p-6">
-                                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 mx-auto mb-4 shadow-lg">
-                                    <Lock size={32} className="text-black" />
-                                </div>
-                                <p className={`font-bold text-xl mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-100'}`}>
-                                    🔒 Pro Feature
-                                </p>
-                                <p className="text-sm text-gray-300 mb-4">
-                                    Trade with your own Alpaca broker account
-                                </p>
-                                <button className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold shadow-lg hover:scale-105 transition-all mx-auto">
-                                    <Zap size={18} fill="currentColor" />
-                                    Unlock Pro Features
-                                </button>
-                            </div>
-                        </div>
-                    )}
+            {/* 3. PRO ACCOUNT - PERSONAL PORTFOLIO (Pro Users Only) */}
+            {user.accountType === 'Pro' && (
+                <Section title="🏆 Pro Account - Personal Portfolio" theme={theme}>
                     <div className="space-y-4">
                         
                         {/* Pro Badge */}
@@ -651,8 +626,8 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme, user, on
                             </>
                         )}
                     </div>
-                </div>
-            </Section>
+                </Section>
+            )}
 
             {/* 4. STRIPE INTEGRATION (Admin Only) */}
             {user.is_admin && (
@@ -786,15 +761,6 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme, user, on
       </div>
 
       {/* REMOVED: Edit Profile Modal for launch phase */}
-
-      {/* Pro Upgrade Modal */}
-      <ProUpgradeModal
-        isOpen={isProModalOpen}
-        onClose={() => setIsProModalOpen(false)}
-        theme={theme}
-        userEmail={user.email}
-        userName={user.name}
-      />
     </div>
   );
 };
