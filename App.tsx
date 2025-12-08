@@ -8,6 +8,7 @@ import { Strategies } from './components/Strategies';
 import { AgentMonitor } from './components/AgentMonitor'; 
 import { Scanner } from './Scanner'; 
 import { PersonalMarketOverview } from './components/PersonalMarketOverview';
+import { CryptoOverdriveScanner } from './components/CryptoOverdriveScanner';
 import { ChatBot } from './components/ChatBot';
 import { Login } from './components/Login';
 import { Welcome } from './components/Welcome';
@@ -920,13 +921,24 @@ const AppContent: React.FC = () => {
   };
 
   const handleOpenTradeModal = async (stock: Stock | Holding, type: 'buy' | 'sell', strategyId?: string) => {
-      if (!currentUser || !currentChampionshipId) { // UPDATED: require currentChampionshipId
+      if (!currentUser) {
+        alert("Please log in to perform trades.");
+        return;
+      }
+      
+      // Check if user is in personal portfolio mode
+      const isPersonalPortfolioMode = !currentChampionshipId && 
+                                      currentUser.accountType === 'Pro' && 
+                                      currentUser.personalPortfolioEnabled;
+      
+      // User must have either a championship OR personal portfolio enabled
+      if (!currentChampionshipId && !isPersonalPortfolioMode) {
         alert("Please select a championship to perform trades.");
         return;
       }
       
-      // NEW: Block trading if championship is finished
-      if (currentChampionshipStatus === 'finished') {
+      // Block trading if championship is finished (only applies to championship mode)
+      if (currentChampionshipId && currentChampionshipStatus === 'finished') {
         alert("🏁 Championship Finished\n\nTrading is no longer allowed. This championship has ended.\n\nYou can view the final leaderboard in the Championships tab.");
         return;
       }
@@ -938,18 +950,69 @@ const AppContent: React.FC = () => {
       setIsTradeModalOpen(true);
   };
 
-  // UPDATED: executeTrade now requires championshipId
-  const executeTrade = async (stock: Stock | Holding, quantity: number, type: 'buy' | 'sell', price: number, strategyId?: string, viLotAmountOverride?: number, champId: string | undefined = undefined) => { // Accept undefined for champId but expect it to be passed
-      if (!currentUser || !champId) { // UPDATED: require champId
-          console.error("Cannot execute trade: User or Championship ID not available.");
-          throw new Error("User or Championship context missing for trade execution.");
+  // UPDATED: executeTrade now supports both championship and personal portfolio modes
+  const executeTrade = async (stock: Stock | Holding, quantity: number, type: 'buy' | 'sell', price: number, strategyId?: string, viLotAmountOverride?: number, champId: string | undefined = undefined) => {
+      if (!currentUser) {
+          console.error("Cannot execute trade: User not available.");
+          throw new Error("User not logged in.");
       }
       
-      // NEW: Safety check - Block if championship is finished
-      const championship = await db.getChampionshipById(champId);
-      if (championship?.status === 'finished') {
-          console.error("Cannot execute trade: Championship has ended.");
-          throw new Error("Trading is not allowed. This championship has ended.");
+      // Check if we're in personal portfolio mode
+      const isPersonalPortfolioMode = !champId && 
+                                      currentUser.accountType === 'Pro' && 
+                                      currentUser.personalPortfolioEnabled;
+      
+      // Must have either championship OR personal portfolio enabled
+      if (!champId && !isPersonalPortfolioMode) {
+          console.error("Cannot execute trade: No championship or personal portfolio context.");
+          throw new Error("Please select a championship or enable personal portfolio to trade.");
+      }
+      
+      // If in championship mode, check if championship is finished
+      if (champId) {
+          const championship = await db.getChampionshipById(champId);
+          if (championship?.status === 'finished') {
+              console.error("Cannot execute trade: Championship has ended.");
+              throw new Error("Trading is not allowed. This championship has ended.");
+          }
+      }
+      
+      // PERSONAL PORTFOLIO MODE: Execute real trade via Alpaca API
+      if (isPersonalPortfolioMode) {
+          console.log(`🔥 [Personal Portfolio] Executing ${type} ${quantity} shares of ${stock.symbol} via Alpaca`);
+          
+          try {
+              // Get user's Alpaca credentials
+              const credentials = await db.getAlpacaCredentials(currentUser.id);
+              if (!credentials.key || !credentials.secret) {
+                  throw new Error("Alpaca API credentials not configured. Please add them in Settings.");
+              }
+              
+              // Execute trade via Alpaca API
+              if (type === 'buy') {
+                  const order = alpacaTradingService.createMarketBuyOrder(stock.symbol, quantity);
+                  await alpacaTradingService.executeOrder(credentials.key, credentials.secret, order);
+                  console.log(`✅ [Personal Portfolio] Buy order placed for ${quantity} shares of ${stock.symbol}`);
+              } else {
+                  const order = alpacaTradingService.createMarketSellOrder(stock.symbol, quantity);
+                  await alpacaTradingService.executeOrder(credentials.key, credentials.secret, order);
+                  console.log(`✅ [Personal Portfolio] Sell order placed for ${quantity} shares of ${stock.symbol}`);
+              }
+              
+              // Refresh personal portfolio data from Alpaca
+              await loadPersonalPortfolioData(currentUser.id);
+              
+              return; // Exit early for personal portfolio mode
+              
+          } catch (error: any) {
+              console.error(`❌ [Personal Portfolio] Trade failed:`, error);
+              throw new Error(`Alpaca trade failed: ${error.message || 'Unknown error'}`);
+          }
+      }
+      
+      // CHAMPIONSHIP MODE: Execute simulated trade in local database
+      if (!champId) {
+          throw new Error("Championship ID required for championship trades");
       }
       
       const totalValue = quantity * price;
@@ -1019,7 +1082,18 @@ const AppContent: React.FC = () => {
   }
 
   const handleConfirmTrade = async (quantity: number, strategyId?: string) => {
-      if (!currentUser || !selectedStock || !currentChampionshipId) return; // UPDATED: require currentChampionshipId
+      if (!currentUser || !selectedStock) return;
+      
+      // Check if we're in personal portfolio mode
+      const isPersonalPortfolioMode = !currentChampionshipId && 
+                                      currentUser.accountType === 'Pro' && 
+                                      currentUser.personalPortfolioEnabled;
+      
+      // Must have either championship OR personal portfolio enabled
+      if (!currentChampionshipId && !isPersonalPortfolioMode) {
+          alert("Please select a championship or enable personal portfolio to trade.");
+          return;
+      }
 
       const liveStock = stocks.find(s => s.symbol === selectedStock.symbol);
       const executionPrice = liveStock ? liveStock.price : (selectedStock as any).avgPrice || (selectedStock as Stock).price;
@@ -1031,26 +1105,23 @@ const AppContent: React.FC = () => {
 
       const totalValue = quantity * executionPrice;
 
-      // NEW: Apply trade limits for 'buy' operations
-      if (tradeType === 'buy') {
+      // Apply trade limits for 'buy' operations (only in championship mode)
+      if (tradeType === 'buy' && currentChampionshipId) {
           if (totalValue > MAX_TRADE_AMOUNT) {
               alert(`Purchase failed: Trade value (${totalValue.toLocaleString(undefined, {style: 'currency', currency: 'USD'})}) exceeds the maximum limit of ${MAX_TRADE_AMOUNT.toLocaleString(undefined, {style: 'currency', currency: 'USD'})} per trade.`);
               return;
           }
-          // Daily buy limit removed - unlimited purchases allowed
       }
 
       try {
           // If it's a 'Value Investor' strategy buy, pass the configured lot amount
-          // This logic is now mostly vestigial if strat_value is removed, but for a new custom VI strategy,
-          // it could still be used if implemented.
           let viLotAmount: number | undefined;
-          if (tradeType === 'buy' && strategyId === 'strat_value') { // Keep check for 'strat_value' for robustness
+          if (tradeType === 'buy' && strategyId === 'strat_value') {
               const viStrategy = strategies.find(s => s.id === 'strat_value');
-              viLotAmount = viStrategy?.valueInvestorConfig?.lotAmount || 5000; // Default if not configured
+              viLotAmount = viStrategy?.valueInvestorConfig?.lotAmount || 5000;
           }
 
-          await executeTrade(selectedStock, quantity, tradeType, executionPrice, strategyId, viLotAmount, currentChampionshipId); // Pass mandatory championshipId
+          await executeTrade(selectedStock, quantity, tradeType, executionPrice, strategyId, viLotAmount, currentChampionshipId);
           setIsTradeModalOpen(false);
           alert(`Successfully ${tradeType === 'buy' ? 'bought' : 'sold'} ${quantity} shares of ${selectedStock.symbol}`);
       } catch (error: any) {
@@ -1059,8 +1130,18 @@ const AppContent: React.FC = () => {
   };
 
   const getSelectedStockQuantity = () => {
-      if (!selectedStock || !currentChampionshipId) return 0; // UPDATED: require currentChampionshipId
-      const h = holdings.find(item => item.symbol === selectedStock.symbol && item.championshipId === currentChampionshipId); // Filter by championshipId
+      if (!selectedStock) return 0;
+      
+      // Determina il championshipId da usare per la ricerca
+      // - Personal Portfolio Mode: usa 'personal-portfolio'
+      // - Championship Mode: usa currentChampionshipId
+      const searchChampId = currentChampionshipId || 'personal-portfolio';
+      
+      const h = holdings.find(item => 
+          item.symbol === selectedStock.symbol && 
+          item.championshipId === searchChampId
+      );
+      
       return h ? h.quantity : 0;
   };
 
@@ -1658,6 +1739,14 @@ const AppContent: React.FC = () => {
                     isScanning={isScanning}
                     onNavigateToSettings={handleNavigateToSettings}
                     championshipId={currentChampionshipId} // UPDATED: now string
+                />
+              );
+          case 'crypto-signals':
+              return (
+                <CryptoOverdriveScanner
+                    theme={theme}
+                    onTrade={(s, t, stratId) => handleOpenTradeModal(s, t, stratId || 'strat_crypto_overdrive')}
+                    userAccountType={currentUser.accountType}
                 />
               );
           case 'activity':

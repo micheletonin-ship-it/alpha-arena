@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { NavItem, Theme, User, TradingContext, Championship } from '../types'; // Import User type and TradingContext
-import { LayoutDashboard, Settings, Sun, Moon, BarChart2, Menu, X, DollarSign, BrainCircuit, Activity, Bot, Radar, LineChart, User as UserIcon, Trophy, Briefcase, Shield, TrendingUp, LogOut, ChevronDown, Wallet, Zap } from 'lucide-react'; // Added ChevronDown, Wallet, Zap
+import { LayoutDashboard, Settings, Sun, Moon, BarChart2, Menu, X, DollarSign, BrainCircuit, Activity, Bot, Radar, LineChart, User as UserIcon, Trophy, Briefcase, Shield, TrendingUp, LogOut, ChevronDown, Wallet, Zap, Rocket } from 'lucide-react'; // Added ChevronDown, Wallet, Zap, Rocket
 import { getUserColor } from '../services/utils'; // Import shared utility function
 
 interface LayoutProps {
@@ -43,6 +43,7 @@ export const Layout: React.FC<LayoutProps> = ({
     { label: 'Portfolio', icon: <LayoutDashboard size={24} />, id: 'portfolio' },
     { label: 'Market', icon: <BarChart2 size={24} />, id: 'market' },
     { label: 'Scanner', icon: <Radar size={24} />, id: 'scanner' },
+    { label: 'Crypto Signals', icon: <Rocket size={24} />, id: 'crypto-signals' },
     { label: 'Activity', icon: <Activity size={24} />, id: 'activity' },
     { label: 'Statistics', icon: <LineChart size={24} />, id: 'statistics' },
     { label: 'Strategies', icon: <BrainCircuit size={24} />, id: 'strategies' },

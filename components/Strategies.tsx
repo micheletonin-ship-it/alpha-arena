@@ -121,19 +121,30 @@ export const Strategies: React.FC<StrategiesProps> = ({ theme, user, onStrategyC
       )}
 
       <div className="space-y-4">
-        {strategies.map((strategy) => (
+        {strategies.map((strategy) => {
+          const isProOnly = strategy.requiredAccountType === 'Pro';
+          const userCanUse = !isProOnly || user.accountType === 'Pro';
+          
+          return (
           <div
             key={strategy.id}
             className={`flex items-center justify-between rounded-2xl border p-6 transition-colors ${
               activeStrategyId === strategy.id
                 ? (theme === 'dark' ? 'border-neonGreen bg-neonGreen/10 shadow-[0_0_20px_rgba(57,255,20,0.1)]' : 'border-black bg-gray-50 shadow-lg')
                 : (theme === 'dark' ? 'border-white/10 bg-white/5 hover:bg-white/10' : 'border-gray-200 bg-white hover:border-gray-300')
-            }`}
+            } ${!userCanUse ? 'opacity-60' : ''}`}
           >
             <div className="flex flex-col">
-              <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                {strategy.name}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className={`text-lg font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  {strategy.name}
+                </h3>
+                {isProOnly && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${theme === 'dark' ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-black' : 'bg-gradient-to-r from-yellow-400 to-orange-400 text-white'} shadow-lg`}>
+                    ⭐ PRO ONLY
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-gray-500 mt-1">{strategy.description}</p>
               <div className="mt-3 space-y-2">
                 <div className="flex items-center gap-4 text-xs text-gray-400">
@@ -193,7 +204,8 @@ export const Strategies: React.FC<StrategiesProps> = ({ theme, user, onStrategyC
               </button>
             </div>
           </div>
-        ))}
+        );
+        })}
       </div>
 
       {isModalOpen && (

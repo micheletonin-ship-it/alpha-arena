@@ -134,6 +134,7 @@ export interface Strategy {
   stopLossPercentage: number; // e.g. 5 (for 5%)
   takeProfitTiers: TrailingStopTier[];
   isSystem?: boolean; // Cannot be deleted
+  requiredAccountType?: 'Pro' | 'Basic'; // NEW: Required account type to use this strategy
   
   // NEW: Specific config for Value Investor strategy
   valueInvestorConfig?: {

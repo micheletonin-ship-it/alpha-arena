@@ -51,6 +51,18 @@ const SEED_DATA = {
             { gainThreshold: 30, trailingDrop: 3.0 }
         ],
         isSystem: true
+    },
+    {
+        id: 'strat_crypto_overdrive',
+        name: '🚀 Crypto Overdrive',
+        description: 'Pro-only strategy for riding strong crypto momentum (BTC, ETH, SOL).',
+        stopLossPercentage: 6.0,
+        takeProfitTiers: [
+            { gainThreshold: 8, trailingDrop: 3.0 },
+            { gainThreshold: 20, trailingDrop: 5.0 }
+        ],
+        isSystem: true,
+        requiredAccountType: 'Pro' as 'Pro' | 'Basic'
     }
   ],
   championships: [] // NEW: Empty for now
@@ -731,8 +743,8 @@ export const getStrategies = async (): Promise<Strategy[]> => {
         }
     });
     
-    // Filter to only the three allowed strategies if more were somehow loaded
-    return finalStrategies.filter(s => ['strat_conservative', 'strat_balanced', 'strat_aggressive'].includes(s.id));
+    // Return all strategies (including crypto_overdrive)
+    return finalStrategies;
 };
 
 export const saveStrategy = async (strategy: Strategy): Promise<void> => {

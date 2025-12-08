@@ -1488,6 +1488,109 @@ Rispondi SOLO in formato JSON valido:
 // ===== AI STRATEGY SUGGESTION ENDPOINT =====
 
 /**
+ * Crypto Historical Bars Endpoint
+ * Fetches 1-minute candlestick data for crypto technical analysis
+ */
+app.post('/api/crypto/bars', async (req, res) => {
+  try {
+    const { symbols, timeframe, limit } = req.body;
+
+    console.log('[Crypto Bars] Request:', { symbols, timeframe, limit });
+
+    if (!symbols || !Array.isArray(symbols)) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Missing or invalid symbols array' 
+      });
+    }
+
+    // Read Alpaca credentials from environment
+    const ALPACA_KEY = process.env.ALPACA_KEY;
+    const ALPACA_SECRET = process.env.ALPACA_SECRET;
+
+    if (!ALPACA_KEY || !ALPACA_SECRET) {
+      return res.status(500).json({ 
+        success: false,
+        error: 'Alpaca credentials not configured on server',
+        message: 'Please configure ALPACA_KEY and ALPACA_SECRET environment variables'
+      });
+    }
+
+    // Convert symbols to Alpaca format (e.g., BTCUSD -> BTC/USD)
+    const alpacaSymbols = symbols.map(s => {
+      const clean = s.replace('-', '').toUpperCase();
+      if (clean.length > 3 && clean.endsWith('USD')) {
+        const base = clean.substring(0, clean.length - 3);
+        return `${base}/USD`;
+      }
+      return clean;
+    });
+
+    // Calculate time range (last 2 hours for 1-min bars = 120 candles)
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - (2 * 60 * 60 * 1000)); // 2 hours ago
+
+    const startStr = startDate.toISOString();
+    const endStr = endDate.toISOString();
+    const tf = timeframe || '1Min';
+    const limitParam = limit || 120;
+
+    const barsUrl = `https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=${alpacaSymbols.join(',')}&timeframe=${tf}&start=${startStr}&end=${endStr}&limit=${limitParam}`;
+
+    console.log('[Crypto Bars] Fetching from Alpaca:', barsUrl);
+
+    const response = await fetch(barsUrl, {
+      headers: {
+        'APCA-API-KEY-ID': ALPACA_KEY,
+        'APCA-API-SECRET-KEY': ALPACA_SECRET,
+        'accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Crypto Bars] Alpaca error:', response.status, errorText);
+      throw new Error(`Alpaca API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const bars = data.bars || {};
+
+    // Transform to our format
+    const result = {};
+    alpacaSymbols.forEach((alpacaSymbol, index) => {
+      const originalSymbol = symbols[index];
+      const symbolBars = bars[alpacaSymbol] || [];
+      
+      result[originalSymbol] = symbolBars.map(bar => ({
+        timestamp: new Date(bar.t).getTime(),
+        open: bar.o,
+        high: bar.h,
+        low: bar.l,
+        close: bar.c,
+        volume: bar.v
+      }));
+
+      console.log(`[Crypto Bars] ${originalSymbol}: ${result[originalSymbol].length} bars`);
+    });
+
+    res.json({
+      success: true,
+      data: result,
+      provider: 'Alpaca'
+    });
+
+  } catch (error) {
+    console.error('[Crypto Bars Error]:', error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch crypto bars',
+      message: error.message 
+    });
+  }
+});
+
+/**
  * AI Strategy Suggestion
  * Analyzes a stock symbol and recommends the best trading strategy
  */
