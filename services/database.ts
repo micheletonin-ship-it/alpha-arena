@@ -126,6 +126,8 @@ export const getUserByEmail = async (email: string): Promise<User | null> => {
                   // Map Keys (Encrypted)
                   alpaca_key: data.alpaca_key,
                   alpaca_secret: data.alpaca_secret,
+                  alpaca_account_type: data.alpaca_account_type, // NEW: Paper or Live
+                  alpaca_validated: data.alpaca_validated, // NEW: Validation status
                   gemini_key: data.gemini_key,
                   openai_key: data.openai_key,
                   anthropic_key: data.anthropic_key,
@@ -134,6 +136,12 @@ export const getUserByEmail = async (email: string): Promise<User | null> => {
                   current_championship_id: data.current_championship_id || undefined, // UPDATED: undefined if null in DB
                   stripe_public_key: data.stripe_public_key, // NEW
                   stripe_secret_key: data.stripe_secret_key, // NEW
+                  
+                  // Pro Subscription Fields
+                  subscriptionStatus: data.subscription_status || 'inactive', // NEW
+                  subscriptionId: data.subscription_id, // NEW
+                  subscriptionEndDate: data.subscription_end_date, // NEW
+                  personalPortfolioEnabled: data.personal_portfolio_enabled || false, // NEW
               };
           }
           return null;
@@ -216,12 +224,20 @@ export const updateUser = async (user: User): Promise<void> => {
                 // Explicitly convert empty strings to null for database storage.
                 alpaca_key: user.alpaca_key === '' ? null : user.alpaca_key,
                 alpaca_secret: user.alpaca_secret === '' ? null : user.alpaca_secret,
+                alpaca_account_type: user.alpaca_account_type || null, // NEW: Paper or Live
+                alpaca_validated: user.alpaca_validated || false, // NEW: Validation status
                 gemini_key: user.gemini_key === '' ? null : user.gemini_key,
                 openai_key: user.openai_key === '' ? null : user.openai_key,
                 anthropic_key: user.anthropic_key === '' ? null : user.anthropic_key,
                 active_ai_provider: user.active_ai_provider,
                 stripe_public_key: user.stripe_public_key === '' ? null : user.stripe_public_key, // NEW: Ensure empty string becomes null
                 stripe_secret_key: user.stripe_secret_key === '' ? null : user.stripe_secret_key, // NEW: Ensure empty string becomes null
+                
+                // Pro Subscription Fields
+                subscription_status: user.subscriptionStatus || 'inactive', // NEW
+                subscription_id: user.subscriptionId || null, // NEW
+                subscription_end_date: user.subscriptionEndDate || null, // NEW
+                personal_portfolio_enabled: user.personalPortfolioEnabled || false, // NEW
             };
             
             const { error } = await supabase.from('user_profiles').upsert(payload, { onConflict: 'email' });

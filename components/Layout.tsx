@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { NavItem, Theme, User } from '../types'; // Import User type
-import { LayoutDashboard, Settings, Sun, Moon, BarChart2, Menu, X, DollarSign, BrainCircuit, Activity, Bot, Radar, LineChart, User as UserIcon, Trophy, Briefcase, Shield, TrendingUp, LogOut } from 'lucide-react'; // Added Shield and LogOut icons
+import { NavItem, Theme, User, TradingContext, Championship } from '../types'; // Import User type and TradingContext
+import { LayoutDashboard, Settings, Sun, Moon, BarChart2, Menu, X, DollarSign, BrainCircuit, Activity, Bot, Radar, LineChart, User as UserIcon, Trophy, Briefcase, Shield, TrendingUp, LogOut, ChevronDown, Wallet, Zap } from 'lucide-react'; // Added ChevronDown, Wallet, Zap
 import { getUserColor } from '../services/utils'; // Import shared utility function
 
 interface LayoutProps {
@@ -14,11 +14,28 @@ interface LayoutProps {
   currentUser: User | null; // Pass current user to access avatarUrl
   currentChampionshipName?: string; // UPDATED: Display current championship, now string (undefined if none)
   onLogout: () => void; // NEW: Log out handler
-  // Removed onSwitchToPersonalPortfolio
+  // NEW: Trading Context props
+  tradingContext?: TradingContext; // Current trading context
+  availableChampionships?: Championship[]; // List of championships user can switch to
+  onSwitchContext?: (context: TradingContext) => void; // Callback to switch context
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children, theme, toggleTheme, activeTab, setActiveTab, userBalance = 0, currentUser, currentChampionshipName, onLogout }) => {
+export const Layout: React.FC<LayoutProps> = ({ 
+  children, 
+  theme, 
+  toggleTheme, 
+  activeTab, 
+  setActiveTab, 
+  userBalance = 0, 
+  currentUser, 
+  currentChampionshipName, 
+  onLogout,
+  tradingContext,
+  availableChampionships = [],
+  onSwitchContext
+}) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isContextDropdownOpen, setIsContextDropdownOpen] = useState(false);
 
   // Base navigation items (for regular users/players)
   const playerNavItems: NavItem[] = [
@@ -132,19 +149,118 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, toggleTheme, ac
                   <Menu size={24} />
                </button>
                
-               <h1 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                 {currentChampionshipName ? (
-                    <span className="flex items-center gap-2">
-                        <Trophy size={20} className="text-yellow-500"/>
-                        {currentChampionshipName}
-                        {/* Removed Personal Portfolio Button */}
-                    </span>
-                 ) : (
-                    <span>
-                        {activeTab.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                    </span>
-                 )}
-               </h1>
+               {/* Trading Context Dropdown (Pro Users Only) */}
+               {currentUser?.accountType === 'Pro' && currentUser?.personalPortfolioEnabled && tradingContext && onSwitchContext ? (
+                 <div className="relative">
+                   <button
+                     onClick={() => setIsContextDropdownOpen(!isContextDropdownOpen)}
+                     className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${
+                       theme === 'dark'
+                         ? 'border-white/10 bg-white/5 hover:bg-white/10 text-white'
+                         : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-900'
+                     }`}
+                   >
+                     {tradingContext.type === 'personal-portfolio' ? (
+                       <>
+                         <Wallet size={18} className="text-green-400" />
+                         <span className="font-semibold">Personal Portfolio</span>
+                         {currentUser.alpaca_account_type === 'live' && (
+                           <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded">LIVE</span>
+                         )}
+                       </>
+                     ) : (
+                       <>
+                         <Trophy size={18} className="text-yellow-500" />
+                         <span className="font-semibold">{tradingContext.name}</span>
+                       </>
+                     )}
+                     <ChevronDown size={16} className={`transition-transform ${isContextDropdownOpen ? 'rotate-180' : ''}`} />
+                   </button>
+
+                   {/* Dropdown Menu */}
+                   {isContextDropdownOpen && (
+                     <div className={`absolute top-full left-0 mt-2 w-64 rounded-xl border shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-50 ${
+                       theme === 'dark'
+                         ? 'border-white/10 bg-background/95 backdrop-blur-xl'
+                         : 'border-gray-200 bg-white'
+                     }`}>
+                       {/* Personal Portfolio Option */}
+                       <button
+                         onClick={() => {
+                           onSwitchContext({ type: 'personal-portfolio', id: 'personal-portfolio', name: 'Personal Portfolio' });
+                           setIsContextDropdownOpen(false);
+                         }}
+                         className={`w-full flex items-center gap-3 px-4 py-3 transition-colors ${
+                           tradingContext.type === 'personal-portfolio'
+                             ? theme === 'dark' ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'
+                             : theme === 'dark' ? 'hover:bg-white/5 text-white' : 'hover:bg-gray-50 text-gray-900'
+                         }`}
+                       >
+                         <Wallet size={18} />
+                         <div className="flex-1 text-left">
+                           <div className="font-semibold">Personal Portfolio</div>
+                           <div className="text-xs text-gray-500">
+                             {currentUser.alpaca_account_type === 'live' ? (
+                               <span className="text-red-500">🔴 Live Trading</span>
+                             ) : (
+                               <span>📄 Paper Trading</span>
+                             )}
+                           </div>
+                         </div>
+                         {tradingContext.type === 'personal-portfolio' && (
+                           <div className="h-2 w-2 rounded-full bg-green-500" />
+                         )}
+                       </button>
+
+                       {/* Divider */}
+                       <div className={`h-px ${theme === 'dark' ? 'bg-white/10' : 'bg-gray-200'}`} />
+
+                       {/* Championships List */}
+                       <div className="max-h-64 overflow-y-auto">
+                         {availableChampionships.map((champ) => (
+                           <button
+                             key={champ.id}
+                             onClick={() => {
+                               onSwitchContext({ type: 'championship', id: champ.id, name: champ.name });
+                               setIsContextDropdownOpen(false);
+                             }}
+                             className={`w-full flex items-center gap-3 px-4 py-3 transition-colors ${
+                               tradingContext.id === champ.id
+                                 ? theme === 'dark' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-700'
+                                 : theme === 'dark' ? 'hover:bg-white/5 text-white' : 'hover:bg-gray-50 text-gray-900'
+                             }`}
+                           >
+                             <Trophy size={18} />
+                             <div className="flex-1 text-left">
+                               <div className="font-semibold text-sm">{champ.name}</div>
+                               <div className="text-xs text-gray-500">
+                                 {champ.status === 'active' ? '🟢 Active' : '⏳ Pending'}
+                               </div>
+                             </div>
+                             {tradingContext.id === champ.id && (
+                               <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                             )}
+                           </button>
+                         ))}
+                       </div>
+                     </div>
+                   )}
+                 </div>
+               ) : (
+                 /* Fallback: Standard Title for Basic users or when context not available */
+                 <h1 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                   {currentChampionshipName ? (
+                      <span className="flex items-center gap-2">
+                          <Trophy size={20} className="text-yellow-500"/>
+                          {currentChampionshipName}
+                      </span>
+                   ) : (
+                      <span>
+                          {activeTab.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                      </span>
+                   )}
+                 </h1>
+               )}
            </div>
 
            <div className="flex items-center gap-6">

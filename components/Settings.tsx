@@ -74,11 +74,13 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme, user, on
   const [twoFactor, setTwoFactor] = useState(false);
   const [autoTrading, setAutoTrading] = useState(user.autoTradingEnabled || false);
   
-  // ALPACA KEYS
+  // ALPACA KEYS - Used for both market data AND personal portfolio
   const [alpacaKey, setAlpacaKey] = useState(() => user.alpaca_key ? decrypt(user.alpaca_key) : '');
   const [alpacaSecret, setAlpacaSecret] = useState(() => user.alpaca_secret ? decrypt(user.alpaca_secret) : '');
+  const [alpacaAccountType, setAlpacaAccountType] = useState<'paper' | 'live'>(user.alpaca_account_type || 'paper');
   const [alpacaConnectionTestResult, setAlpacaConnectionTestResult] = useState<{success: boolean, message: string} | null>(null);
   const [isAlpacaTesting, setIsAlpacaTesting] = useState(false);
+  const [personalPortfolioEnabled, setPersonalPortfolioEnabled] = useState(user.personalPortfolioEnabled || false);
 
 
   // AI KEYS & CONFIG
@@ -250,6 +252,9 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme, user, on
         ...user,
         alpaca_key: encAlpacaKey,
         alpaca_secret: encAlpacaSecret,
+        alpaca_account_type: alpacaAccountType, // NEW: Paper or Live
+        alpaca_validated: alpacaConnectionTestResult?.success || false, // NEW: Validation status
+        personalPortfolioEnabled: personalPortfolioEnabled, // NEW: Personal portfolio toggle
         gemini_key: encGemini,
         openai_key: encOpenAI,
         anthropic_key: encAnthropic,
@@ -479,54 +484,152 @@ export const Settings: React.FC<SettingsProps> = ({ theme, toggleTheme, user, on
                 </div>
             </Section>
 
-            {/* 3. API CONFIGURATION */}
-            <Section title="API Configuration" theme={theme}>
-                <div className="space-y-4">
-                    <p className="text-xs text-gray-500">
-                        Integrate with real-time market data APIs (e.g., Alpaca) for live price feeds.
-                    </p>
-                    
-                    <div className="space-y-3">
-                        <div>
-                            <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Alpaca Key ID (Market Data)</label>
-                            <input 
-                                type="password" 
-                                value={alpacaKey}
-                                onChange={e => setAlpacaKey(e.target.value)}
-                                placeholder="PK..."
-                                className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors ${theme === 'dark' ? 'bg-black/30 border-white/10 text-white focus:border-neonGreen' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
-                            />
-                        </div>
-                        <div>
-                            <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Alpaca Secret Key (Market Data)</label>
-                            <input 
-                                type="password" 
-                                value={alpacaSecret}
-                                onChange={e => setAlpacaSecret(e.target.value)}
-                                placeholder="SK..."
-                                className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors ${theme === 'dark' ? 'bg-black/30 border-white/10 text-white focus:border-neonGreen' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
-                            />
-                            <div className="flex items-center justify-between pt-2">
-                                <button 
-                                  onClick={handleTestAlpacaConnection}
-                                  disabled={isAlpacaTesting || !alpacaKey || !alpacaSecret}
-                                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${theme === 'dark' ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
-                                >
-                                   <Activity size={14}/> {isAlpacaTesting ? 'Testing...' : 'Test Connection'}
-                                </button>
-                                {alpacaConnectionTestResult && (
-                                    <span className={`text-xs font-medium flex items-center gap-1 ${alpacaConnectionTestResult.success ? 'text-green-500' : 'text-red-500'}`}>
-                                        {alpacaConnectionTestResult.success ? <CheckCircle size={14}/> : <X size={14}/>}
-                                        {alpacaConnectionTestResult.message}
-                                    </span>
-                                )}
+            {/* 3. PRO ACCOUNT - PERSONAL PORTFOLIO (Pro Users Only) */}
+            {user.accountType === 'Pro' && (
+                <Section title="🏆 Pro Account - Personal Portfolio" theme={theme}>
+                    <div className="space-y-4">
+                        
+                        {/* Pro Badge */}
+                        <div className="flex items-start gap-3 mb-4 rounded-lg p-3 border border-yellow-500/20 bg-yellow-500/10">
+                            <Zap size={20} className="text-yellow-400 mt-0.5" />
+                            <div>
+                                <p className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                                    Pro Features Unlocked
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Trade with your own Alpaca account (Paper or Live). Connect your personal API keys below.
+                                </p>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </Section>
 
-            {/* NEW: 4. STRIPE INTEGRATION (Admin Only) */}
+                        {/* Enable Personal Portfolio Toggle */}
+                        <div className="flex items-start gap-4 mb-4">
+                            <Activity size={20} className="mt-0.5 text-green-400"/>
+                            <div className="flex-1">
+                                <h4 className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Enable Personal Portfolio</h4>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Activate your personal Alpaca portfolio. When enabled, you can switch between championships and your personal account.
+                                </p>
+                            </div>
+                            <Toggle 
+                                checked={personalPortfolioEnabled} 
+                                onChange={() => setPersonalPortfolioEnabled(!personalPortfolioEnabled)} 
+                                theme={theme} 
+                            />
+                        </div>
+
+                        {personalPortfolioEnabled && (
+                            <>
+                                {/* Account Type Selector */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Alpaca Account Type</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button 
+                                            onClick={() => setAlpacaAccountType('paper')}
+                                            className={`flex flex-col items-center p-3 rounded-xl border transition-all ${alpacaAccountType === 'paper'
+                                                ? 'border-blue-500 bg-blue-500/20 text-white' 
+                                                : (theme === 'dark' ? 'border-white/10 bg-white/5 hover:bg-white/10 text-gray-400' : 'border-gray-200 bg-gray-50 text-gray-500')
+                                            }`}
+                                        >
+                                            <Sparkles size={20} className="mb-2"/>
+                                            <span className="text-xs font-bold">Paper Trading</span>
+                                            <span className="text-[10px] text-gray-500">Simulation</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => setAlpacaAccountType('live')}
+                                            className={`flex flex-col items-center p-3 rounded-xl border transition-all ${alpacaAccountType === 'live'
+                                                ? 'border-red-500 bg-red-500/20 text-white' 
+                                                : (theme === 'dark' ? 'border-white/10 bg-white/5 hover:bg-white/10 text-gray-400' : 'border-gray-200 bg-gray-50 text-gray-500')
+                                            }`}
+                                        >
+                                            <Zap size={20} className="mb-2"/>
+                                            <span className="text-xs font-bold">Live Trading</span>
+                                            <span className="text-[10px] text-red-500">⚠️ Real Money</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Warning for Live Trading */}
+                                {alpacaAccountType === 'live' && (
+                                    <div className="flex items-start gap-3 rounded-lg p-3 border border-red-500/30 bg-red-500/10">
+                                        <Shield size={18} className="text-red-400 mt-0.5 flex-shrink-0" />
+                                        <div>
+                                            <p className={`text-xs font-medium ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}>
+                                                ⚠️ Live Trading Warning
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                You are about to connect a LIVE trading account. All trades will use REAL MONEY. 
+                                                Make sure you understand the risks involved.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Alpaca API Keys */}
+                                <div className="space-y-3 mt-4">
+                                    <div>
+                                        <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">
+                                            Alpaca API Key ({alpacaAccountType === 'paper' ? 'PK...' : 'AK...'})
+                                        </label>
+                                        <input 
+                                            type="password" 
+                                            value={alpacaKey}
+                                            onChange={e => setAlpacaKey(e.target.value)}
+                                            placeholder={alpacaAccountType === 'paper' ? 'PK...' : 'AK...'}
+                                            className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors ${theme === 'dark' ? 'bg-black/30 border-white/10 text-white focus:border-neonGreen' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                                        />
+                                        <p className="text-[10px] text-gray-500 mt-1">
+                                            Paper keys start with "PK", Live keys start with "AK"
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Alpaca Secret Key</label>
+                                        <input 
+                                            type="password" 
+                                            value={alpacaSecret}
+                                            onChange={e => setAlpacaSecret(e.target.value)}
+                                            placeholder="Secret Key..."
+                                            className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors ${theme === 'dark' ? 'bg-black/30 border-white/10 text-white focus:border-neonGreen' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Validate Button */}
+                                <div className="flex items-center justify-between pt-2">
+                                    <button 
+                                      onClick={handleTestAlpacaConnection}
+                                      disabled={isAlpacaTesting || !alpacaKey || !alpacaSecret}
+                                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-colors ${
+                                          alpacaAccountType === 'live' 
+                                          ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
+                                          : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                      }`}
+                                    >
+                                       <Activity size={14}/> {isAlpacaTesting ? 'Validating...' : 'Validate Keys'}
+                                    </button>
+                                    {alpacaConnectionTestResult && (
+                                        <span className={`text-xs font-medium flex items-center gap-1 ${alpacaConnectionTestResult.success ? 'text-green-500' : 'text-red-500'}`}>
+                                            {alpacaConnectionTestResult.success ? <CheckCircle size={14}/> : <X size={14}/>}
+                                            {alpacaConnectionTestResult.message}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Info Box */}
+                                <div className="mt-4 rounded-lg border border-blue-500/20 bg-blue-500/10 p-3">
+                                    <p className="text-xs text-gray-400">
+                                        <strong>How it works:</strong> Your personal portfolio will sync with your Alpaca account. 
+                                        All holdings and cash balance will be fetched from Alpaca in real-time. 
+                                        You can switch between your championships and personal portfolio from the header dropdown.
+                                    </p>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </Section>
+            )}
+
+            {/* 4. STRIPE INTEGRATION (Admin Only) */}
             {user.is_admin && (
                 <Section title="Stripe Integration" theme={theme}>
                     <div className="space-y-4">

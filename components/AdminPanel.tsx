@@ -222,6 +222,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, currentUser, mark
             onDisableUser={handleDisableUser}
             onEnableUser={handleEnableUser}
             onDeleteUser={handleDeleteUser}
+            onUpgradeToPro={handleUpgradeUserToPro}
+            onDowngradeToBasic={handleDowngradeUserToBasic}
           />
 
           {/* Scanner Management */}
@@ -400,6 +402,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, currentUser, mark
     } catch (error) {
       console.error('Failed to delete user:', error);
       alert('Errore durante l\'eliminazione dell\'utente');
+    }
+  }
+
+  // NEW: Upgrade user to Pro
+  async function handleUpgradeUserToPro(userId: string) {
+    if (!confirm('Promuovere questo utente a Pro? Potrà accedere al Personal Portfolio.')) return;
+    
+    try {
+      const result = await adminService.upgradeUserToPro(userId);
+      if (result.success) {
+        alert('✅ Utente promosso a Pro con successo!');
+        await loadUsers();
+      } else {
+        alert(`Errore: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to upgrade user:', error);
+      alert('Errore durante l\'upgrade dell\'utente');
+    }
+  }
+
+  // NEW: Downgrade user to Basic
+  async function handleDowngradeUserToBasic(userId: string) {
+    if (!confirm('Retrocedere questo utente a Basic? Perderà l\'accesso al Personal Portfolio.')) return;
+    
+    try {
+      const result = await adminService.downgradeUserToBasic(userId);
+      if (result.success) {
+        alert('✅ Utente retrocesso a Basic');
+        await loadUsers();
+      } else {
+        alert(`Errore: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to downgrade user:', error);
+      alert('Errore durante il downgrade dell\'utente');
     }
   }
 
@@ -984,6 +1022,8 @@ interface UserManagerProps {
   onDisableUser: (userId: string) => void;
   onEnableUser: (userId: string) => void;
   onDeleteUser: (userId: string) => void;
+  onUpgradeToPro: (userId: string) => void;
+  onDowngradeToBasic: (userId: string) => void;
 }
 
 const UserManager: React.FC<UserManagerProps> = ({
@@ -994,6 +1034,8 @@ const UserManager: React.FC<UserManagerProps> = ({
   onDisableUser,
   onEnableUser,
   onDeleteUser,
+  onUpgradeToPro,
+  onDowngradeToBasic,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'banned'>('all');
@@ -1066,13 +1108,19 @@ const UserManager: React.FC<UserManagerProps> = ({
                 <thead className={`border-b ${theme === 'dark' ? 'border-white/5 text-gray-400' : 'border-gray-200 text-gray-600'}`}>
                   <tr>
                     <th className="px-4 py-3 text-left font-medium">Utente</th>
+                    <th className="px-4 py-3 text-left font-medium">Account</th>
                     <th className="px-4 py-3 text-left font-medium">Stato</th>
                     <th className="px-4 py-3 text-left font-medium">Registrato</th>
                     <th className="px-4 py-3 text-center font-medium">Azioni</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y ${theme === 'dark' ? 'divide-white/5' : 'divide-gray-100'}`}>
-                  {filteredUsers.map(user => (
+                  {filteredUsers.map(user => {
+                    // Note: AdminUser doesn't have accountType yet - will show as Basic for now
+                    const accountType = (user as any).accountType || 'Basic';
+                    const isPro = accountType === 'Pro';
+                    
+                    return (
                     <tr key={user.id} className={`transition-colors ${theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-50'}`}>
                       <td className="px-4 py-3">
                         <div>
@@ -1081,6 +1129,17 @@ const UserManager: React.FC<UserManagerProps> = ({
                           </p>
                           <p className="text-xs text-gray-500">{user.email}</p>
                         </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {isPro ? (
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold bg-yellow-500/20 text-yellow-400">
+                            ⭐ Pro
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold bg-gray-500/20 text-gray-400">
+                            Basic
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         {user.banned ? (
@@ -1098,6 +1157,26 @@ const UserManager: React.FC<UserManagerProps> = ({
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-1">
+                          {/* Upgrade/Downgrade buttons */}
+                          {isPro ? (
+                            <button
+                              onClick={() => onDowngradeToBasic(user.id)}
+                              className={`p-1.5 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-600'}`}
+                              title="⬇️ Downgrade to Basic"
+                            >
+                              <TrendingUp size={16} className="rotate-180"/>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => onUpgradeToPro(user.id)}
+                              className={`p-1.5 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/10 text-yellow-400' : 'hover:bg-gray-100 text-yellow-600'}`}
+                              title="⬆️ Upgrade to Pro"
+                            >
+                              <TrendingUp size={16}/>
+                            </button>
+                          )}
+                          
+                          {/* Enable/Disable */}
                           {user.banned ? (
                             <button
                               onClick={() => onEnableUser(user.id)}
@@ -1115,6 +1194,8 @@ const UserManager: React.FC<UserManagerProps> = ({
                               <UserX size={16}/>
                             </button>
                           )}
+                          
+                          {/* Delete */}
                           <button
                             onClick={() => onDeleteUser(user.id)}
                             className={`p-1.5 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/10 text-red-400' : 'hover:bg-gray-100 text-red-600'}`}
@@ -1125,7 +1206,7 @@ const UserManager: React.FC<UserManagerProps> = ({
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>

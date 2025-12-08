@@ -152,3 +152,71 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
     };
   }
 }
+
+/**
+ * Upgrade user to Pro account (Admin only)
+ */
+export async function upgradeUserToPro(userId: string): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/upgrade-pro`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || `HTTP error ${response.status}`
+      };
+    }
+
+    return {
+      success: true,
+      message: data.message
+    };
+  } catch (error: any) {
+    console.error('[AdminService] Upgrade user to Pro error:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to upgrade user to Pro'
+    };
+  }
+}
+
+/**
+ * Downgrade user to Basic account (Admin only)
+ */
+export async function downgradeUserToBasic(userId: string): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/downgrade-basic`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || `HTTP error ${response.status}`
+      };
+    }
+
+    return {
+      success: true,
+      message: data.message
+    };
+  } catch (error: any) {
+    console.error('[AdminService] Downgrade user to Basic error:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to downgrade user to Basic'
+    };
+  }
+}

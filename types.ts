@@ -16,6 +16,8 @@ export interface User {
   // Cloud Credentials (Encrypted)
   alpaca_key?: string;
   alpaca_secret?: string;
+  alpaca_account_type?: 'paper' | 'live'; // NEW: Type of Alpaca account (paper trading or live)
+  alpaca_validated?: boolean; // NEW: Whether keys have been validated
   
   // AI Credentials (Encrypted)
   gemini_key?: string;
@@ -31,6 +33,12 @@ export interface User {
   current_championship_id?: string; // UPDATED: The championship ID the user is currently focused on (undefined if none)
   stripe_public_key?: string; // NEW: Encrypted Stripe publishable key
   stripe_secret_key?: string; // NEW: Encrypted Stripe secret key
+  
+  // Pro Subscription (Stripe)
+  subscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'inactive'; // NEW: Stripe subscription status
+  subscriptionId?: string; // NEW: Stripe subscription ID
+  subscriptionEndDate?: string; // NEW: Subscription end date
+  personalPortfolioEnabled?: boolean; // NEW: Whether user has activated personal portfolio
 }
 
 export interface Stock {
@@ -237,4 +245,119 @@ export interface LeaderboardEntry {
   returnPercentage: number; // (totalReturn / starting_cash) * 100
   totalAssetValue: number; // Sum of current value of holdings
   totalTrades: number; // Count of buy/sell transactions
+}
+
+// --- PERSONAL PORTFOLIO & ALPACA TRADING TYPES ---
+
+// Trading context type - determines where user is operating
+export type TradingContextType = 'championship' | 'personal-portfolio';
+
+export interface TradingContext {
+  type: TradingContextType;
+  id: string; // Championship ID or 'personal-portfolio'
+  name: string; // Display name
+}
+
+// Alpaca Order for real trading
+export interface AlpacaOrder {
+  symbol: string;
+  qty: number;
+  side: 'buy' | 'sell';
+  type: 'market' | 'limit' | 'stop' | 'stop_limit';
+  time_in_force: 'day' | 'gtc' | 'opg' | 'cls' | 'ioc' | 'fok';
+  limit_price?: number;
+  stop_price?: number;
+  client_order_id?: string;
+}
+
+// Alpaca Position (real holding from Alpaca API)
+export interface AlpacaPosition {
+  asset_id: string;
+  symbol: string;
+  exchange: string;
+  asset_class: string;
+  qty: string;
+  avg_entry_price: string;
+  side: 'long' | 'short';
+  market_value: string;
+  cost_basis: string;
+  unrealized_pl: string;
+  unrealized_plpc: string;
+  unrealized_intraday_pl: string;
+  unrealized_intraday_plpc: string;
+  current_price: string;
+  lastday_price: string;
+  change_today: string;
+}
+
+// Alpaca Account Info
+export interface AlpacaAccount {
+  id: string;
+  account_number: string;
+  status: string;
+  currency: string;
+  buying_power: string;
+  cash: string;
+  portfolio_value: string;
+  pattern_day_trader: boolean;
+  trading_blocked: boolean;
+  transfers_blocked: boolean;
+  account_blocked: boolean;
+  created_at: string;
+  trade_suspended_by_user: boolean;
+  multiplier: string;
+  shorting_enabled: boolean;
+  equity: string;
+  last_equity: string;
+  long_market_value: string;
+  short_market_value: string;
+  initial_margin: string;
+  maintenance_margin: string;
+  last_maintenance_margin: string;
+  sma: string;
+  daytrade_count: number;
+}
+
+// Alpaca Order Response
+export interface AlpacaOrderResponse {
+  id: string;
+  client_order_id: string;
+  created_at: string;
+  updated_at: string;
+  submitted_at: string;
+  filled_at: string | null;
+  expired_at: string | null;
+  canceled_at: string | null;
+  failed_at: string | null;
+  replaced_at: string | null;
+  replaced_by: string | null;
+  replaces: string | null;
+  asset_id: string;
+  symbol: string;
+  asset_class: string;
+  notional: string | null;
+  qty: string;
+  filled_qty: string;
+  filled_avg_price: string | null;
+  order_class: string;
+  order_type: string;
+  type: string;
+  side: 'buy' | 'sell';
+  time_in_force: string;
+  limit_price: string | null;
+  stop_price: string | null;
+  status: 'new' | 'accepted' | 'pending_new' | 'accepted_for_bidding' | 'stopped' | 'rejected' | 'suspended' | 'calculated' | 'filled' | 'done_for_day' | 'canceled' | 'expired' | 'replaced' | 'pending_cancel' | 'pending_replace';
+  extended_hours: boolean;
+  legs: any | null;
+  trail_percent: string | null;
+  trail_price: string | null;
+  hwm: string | null;
+}
+
+// Validation result for Alpaca credentials
+export interface AlpacaCredentialsValidation {
+  valid: boolean;
+  accountType: 'paper' | 'live';
+  accountInfo?: AlpacaAccount;
+  error?: string;
 }

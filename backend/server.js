@@ -679,7 +679,7 @@ app.get('/api/admin/users', async (req, res) => {
       try {
         const { data: profile } = await supabaseAdmin
           .from('user_profiles')
-          .select('name, is_admin')
+          .select('name, is_admin, account_type')
           .eq('email', user.email)
           .single();
         
@@ -688,6 +688,7 @@ app.get('/api/admin/users', async (req, res) => {
           email: user.email,
           name: profile?.name || 'N/A',
           is_admin: profile?.is_admin || false,
+          account_type: profile?.account_type || 'Basic',
           created_at: user.created_at,
           last_sign_in_at: user.last_sign_in_at,
           email_confirmed_at: user.email_confirmed_at,
@@ -701,6 +702,7 @@ app.get('/api/admin/users', async (req, res) => {
           email: user.email,
           name: 'N/A',
           is_admin: false,
+          account_type: 'Basic',
           created_at: user.created_at,
           last_sign_in_at: user.last_sign_in_at,
           email_confirmed_at: user.email_confirmed_at,
@@ -917,6 +919,151 @@ app.delete('/api/admin/users/:id', async (req, res) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to delete user',
+      message: error.message 
+    });
+  }
+});
+
+/**
+ * Upgrade User to Pro Account (Admin only)
+ * Updates user's accountType to 'Pro' in user_profiles
+ */
+app.post('/api/admin/users/:id/upgrade-pro', async (req, res) => {
+  if (!supabaseAdmin) {
+    return res.status(500).json({ 
+      success: false,
+      error: 'Supabase Admin not initialized' 
+    });
+  }
+
+  try {
+    const { id } = req.params;
+    console.log(`[Admin] Upgrading user to Pro: ${id}`);
+
+    // Get user email from auth
+    const { data: user, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(id);
+    
+    if (getUserError || !user) {
+      console.error('[Admin] Error getting user:', getUserError?.message);
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found' 
+      });
+    }
+
+    const userEmail = user.user.email;
+    console.log(`[Admin] User email: ${userEmail}`);
+
+    // Update user_profiles to set accountType = 'Pro'
+    const { data: updatedProfile, error: updateError } = await supabaseAdmin
+      .from('user_profiles')
+      .update({ 
+        account_type: 'Pro',
+        personal_portfolio_enabled: false // Default to disabled, user must enable it in Settings
+      })
+      .eq('email', userEmail)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('[Admin] Error updating user profile:', updateError.message);
+      return res.status(500).json({ 
+        success: false,
+        error: updateError.message 
+      });
+    }
+
+    console.log(`[Admin] User ${userEmail} upgraded to Pro successfully`);
+    
+    res.json({ 
+      success: true,
+      message: 'User upgraded to Pro successfully',
+      user: {
+        id: user.user.id,
+        email: userEmail,
+        accountType: 'Pro'
+      }
+    });
+
+  } catch (error) {
+    console.error('[Admin] Upgrade user error:', error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to upgrade user',
+      message: error.message 
+    });
+  }
+});
+
+/**
+ * Downgrade User to Basic Account (Admin only)
+ * Updates user's accountType to 'Basic' in user_profiles
+ */
+app.post('/api/admin/users/:id/downgrade-basic', async (req, res) => {
+  if (!supabaseAdmin) {
+    return res.status(500).json({ 
+      success: false,
+      error: 'Supabase Admin not initialized' 
+    });
+  }
+
+  try {
+    const { id } = req.params;
+    console.log(`[Admin] Downgrading user to Basic: ${id}`);
+
+    // Get user email from auth
+    const { data: user, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(id);
+    
+    if (getUserError || !user) {
+      console.error('[Admin] Error getting user:', getUserError?.message);
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found' 
+      });
+    }
+
+    const userEmail = user.user.email;
+    console.log(`[Admin] User email: ${userEmail}`);
+
+    // Update user_profiles to set accountType = 'Basic'
+    const { data: updatedProfile, error: updateError } = await supabaseAdmin
+      .from('user_profiles')
+      .update({ 
+        account_type: 'Basic',
+        personal_portfolio_enabled: false, // Disable personal portfolio
+        alpaca_key: null, // Clear Alpaca keys for security
+        alpaca_secret: null,
+        alpaca_account_type: null
+      })
+      .eq('email', userEmail)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('[Admin] Error updating user profile:', updateError.message);
+      return res.status(500).json({ 
+        success: false,
+        error: updateError.message 
+      });
+    }
+
+    console.log(`[Admin] User ${userEmail} downgraded to Basic successfully`);
+    
+    res.json({ 
+      success: true,
+      message: 'User downgraded to Basic successfully',
+      user: {
+        id: user.user.id,
+        email: userEmail,
+        accountType: 'Basic'
+      }
+    });
+
+  } catch (error) {
+    console.error('[Admin] Downgrade user error:', error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to downgrade user',
       message: error.message 
     });
   }
