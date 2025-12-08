@@ -10,6 +10,7 @@ export interface AdminUser {
   email: string;
   name: string;
   is_admin: boolean;
+  account_type: string; // 'Basic' or 'Pro'
   created_at: string;
   last_sign_in_at: string | null;
   email_confirmed_at: string | null;

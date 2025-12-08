@@ -1116,8 +1116,8 @@ const UserManager: React.FC<UserManagerProps> = ({
                 </thead>
                 <tbody className={`divide-y ${theme === 'dark' ? 'divide-white/5' : 'divide-gray-100'}`}>
                   {filteredUsers.map(user => {
-                    // Note: AdminUser doesn't have accountType yet - will show as Basic for now
-                    const accountType = (user as any).accountType || 'Basic';
+                    // Use account_type from backend (snake_case)
+                    const accountType = user.account_type || 'Basic';
                     const isPro = accountType === 'Pro';
                     
                     return (
