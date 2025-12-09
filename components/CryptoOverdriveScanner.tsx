@@ -1,45 +1,81 @@
 import React, { useState } from 'react';
 import { Theme, Stock } from '../types';
 import { Zap, TrendingUp, BarChart3, Activity, CheckCircle, XCircle, Loader2, Rocket } from 'lucide-react';
-import { analyzeCryptoOverdrive, fetchCryptoCandles, generateMockCandleData, CryptoSignal } from '../services/cryptoSignals';
+import { analyzeCryptoOverdrive, fetchYFinanceCandles, generateMockCandleData, CryptoSignal } from '../services/cryptoSignals';
 
 interface CryptoOverdriveScannerProps {
   theme: Theme;
   onTrade: (stock: Stock, type: 'buy', strategyId?: string) => void;
   userAccountType: 'Pro' | 'Basic';
+  championshipId: string | undefined;
+  marketData: Stock[];
 }
-
-const CRYPTO_SYMBOLS = ['BTCUSD', 'ETHUSD', 'AVAXUSD'];
 
 export const CryptoOverdriveScanner: React.FC<CryptoOverdriveScannerProps> = ({
   theme,
   onTrade,
   userAccountType,
+  championshipId,
+  marketData,
 }) => {
   const [signals, setSignals] = useState<CryptoSignal[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [lastScanTime, setLastScanTime] = useState<Date | null>(null);
 
+  // Filtra solo crypto dai ticker del market data
+  // Lista di basi crypto conosciute
+  const CRYPTO_BASES = ['BTC', 'ETH', 'SOL', 'AVAX', 'ADA', 'XRP', 'DOGE', 'DOT', 'MATIC', 'BNB', 'LINK', 'UNI', 'ATOM'];
+  
+  const cryptoSymbols = marketData
+    .filter(stock => {
+      const cleanSymbol = stock.symbol.toUpperCase().replace(/-/g, '');
+      // Verifica se inizia con una base crypto conosciuta e contiene USD
+      return CRYPTO_BASES.some(crypto => cleanSymbol.startsWith(crypto)) && cleanSymbol.includes('USD');
+    })
+    .map(stock => stock.symbol);
+  
+  // DEBUG: Log per verificare i dati
+  console.log('[Crypto Scanner] 📊 marketData length:', marketData.length);
+  console.log('[Crypto Scanner] 📋 All symbols:', marketData.map(s => s.symbol));
+  console.log('[Crypto Scanner] 🔍 Filtered crypto symbols:', cryptoSymbols);
+
   const handleScan = async () => {
+    if (cryptoSymbols.length === 0) {
+      alert('⚠️ No crypto available in this championship.\n\nThis scanner requires cryptocurrency tickers (e.g., BTCUSD, ETHUSD) to be included in the championship.');
+      return;
+    }
+
     setIsScanning(true);
     
     try {
-      // Fetch candlestick data from Alpaca
-      console.log('[Crypto Scanner] Fetching data for:', CRYPTO_SYMBOLS);
-      const candleData = await fetchCryptoCandles(CRYPTO_SYMBOLS);
+      // Fetch candlestick data from Yahoo Finance
+      console.log('[Crypto Scanner] Fetching data for:', cryptoSymbols);
+      const candleData = await fetchYFinanceCandles(cryptoSymbols);
       
       const results: CryptoSignal[] = [];
       
       // Analizza ogni crypto
-      for (const symbol of CRYPTO_SYMBOLS) {
+      for (const symbol of cryptoSymbols) {
         const symbolData = candleData[symbol];
         
-        // Fallback to mock data if API fails or returns empty
-        const dataToAnalyze = symbolData && symbolData.length > 0 
-          ? symbolData 
-          : generateMockCandleData(symbol);
+        // symbolData can be either:
+        // 1. { bars: [...], indicators: {...} } from Yahoo Finance (with pre-calculated indicators)
+        // 2. Array of bars (legacy format)
+        // 3. undefined/empty (need fallback to mock)
         
-        if (symbolData && symbolData.length === 0) {
+        let hasBars = false;
+        if (symbolData) {
+          if (Array.isArray(symbolData)) {
+            hasBars = symbolData.length > 0;
+          } else if ('bars' in symbolData) {
+            hasBars = symbolData.bars && symbolData.bars.length > 0;
+          }
+        }
+        
+        // Fallback to mock data if API fails or returns empty
+        const dataToAnalyze = hasBars ? symbolData : generateMockCandleData(symbol);
+        
+        if (!hasBars) {
           console.warn(`[Crypto Scanner] No data for ${symbol}, using mock data`);
         }
         
@@ -60,7 +96,7 @@ export const CryptoOverdriveScanner: React.FC<CryptoOverdriveScannerProps> = ({
       // Fallback to mock data on error
       console.warn('[Crypto Scanner] Using mock data due to error');
       const results: CryptoSignal[] = [];
-      for (const symbol of CRYPTO_SYMBOLS) {
+      for (const symbol of cryptoSymbols) {
         const mockData = generateMockCandleData(symbol);
         const signal = await analyzeCryptoOverdrive(symbol, mockData);
         results.push(signal);
@@ -267,8 +303,18 @@ export const CryptoOverdriveScanner: React.FC<CryptoOverdriveScannerProps> = ({
       {signals.length === 0 && !isScanning && canAccessOverdrive && (
         <div className={`p-12 rounded-2xl border border-dashed text-center ${theme === 'dark' ? 'border-white/10 text-gray-500' : 'border-gray-300 text-gray-400'}`}>
           <Zap size={48} className="mx-auto mb-4 opacity-20" />
-          <p>Click "Scan Signals" to analyze crypto opportunities</p>
-          <p className="mt-2 text-xs">Uses RSI, ATR, Volume & Momentum indicators</p>
+          {cryptoSymbols.length > 0 ? (
+            <>
+              <p>Click "Scan Signals" to analyze {cryptoSymbols.length} crypto {cryptoSymbols.length === 1 ? 'opportunity' : 'opportunities'}</p>
+              <p className="mt-2 text-xs">Analyzing: {cryptoSymbols.join(', ')}</p>
+              <p className="mt-1 text-xs text-gray-600">Uses RSI, ATR, Volume & Momentum indicators</p>
+            </>
+          ) : (
+            <>
+              <p>⚠️ No cryptocurrency available in this championship</p>
+              <p className="mt-2 text-xs">This scanner requires crypto tickers (e.g., BTCUSD, ETHUSD)</p>
+            </>
+          )}
         </div>
       )}
     </div>

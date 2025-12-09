@@ -1747,6 +1747,8 @@ const AppContent: React.FC = () => {
                     theme={theme}
                     onTrade={(s, t, stratId) => handleOpenTradeModal(s, t, stratId || 'strat_crypto_overdrive')}
                     userAccountType={currentUser.accountType}
+                    championshipId={currentChampionshipId}
+                    marketData={stocks}
                 />
               );
           case 'activity':
