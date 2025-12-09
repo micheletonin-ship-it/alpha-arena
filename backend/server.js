@@ -4,9 +4,14 @@ const bodyParser = require('body-parser');
 const Stripe = require('stripe');
 const { createClient } = require('@supabase/supabase-js');
 const cron = require('node-cron');
+const { RSI, ATR } = require('technicalindicators');
 require('dotenv').config();
 const { savePayment, joinChampionship, getChampionshipById } = require('./database');
 const { decrypt } = require('./security');
+
+// Initialize Yahoo Finance (create instance)
+const YahooFinance = require('yahoo-finance2').default;
+const yahooFinance = new YahooFinance();
 
 // Initialize Supabase Admin Client (with Service Role Key for admin operations)
 let supabaseAdmin = null;
@@ -1585,6 +1590,211 @@ app.post('/api/crypto/bars', async (req, res) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to fetch crypto bars',
+      message: error.message 
+    });
+  }
+});
+
+/**
+ * Yahoo Finance (yfinance) Crypto Historical Bars Endpoint
+ * Fetches candlestick data using yahoo-finance2 library
+ */
+app.post('/api/yfinance/crypto/bars', async (req, res) => {
+  try {
+    const { symbols, timeframe, limit } = req.body;
+
+    console.log('[YFinance Crypto] Request:', { symbols, timeframe, limit });
+
+    if (!symbols || !Array.isArray(symbols)) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Missing or invalid symbols array' 
+      });
+    }
+
+    // Convert symbols to Yahoo Finance format (e.g., BTCUSD or BTC-USD -> BTC-USD)
+    const yahooSymbols = symbols.map(s => {
+      // Remove any existing dashes first, then extract base currency
+      const clean = s.replace(/-/g, '').replace(/USD$/i, '').toUpperCase();
+      return `${clean}-USD`;
+    });
+
+    console.log('[YFinance Crypto] Yahoo symbols:', yahooSymbols);
+
+    // Use 1-HOUR data for crypto (5 days = 120 bars of 1h each)
+    const limitBars = limit || 120; // Default 120 bars
+    const intervalMinutes = 60; // 1-hour intervals
+    const hoursNeeded = limitBars; // 120 hours = 5 days
+    
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - (hoursNeeded * 60 * 60 * 1000));
+
+    console.log(`[YFinance Crypto] Using 1-HOUR data - Time range: ${startDate.toISOString()} to ${endDate.toISOString()} (${hoursNeeded} hours / ~${Math.ceil(hoursNeeded/24)} days)`);
+
+    const result = {};
+
+    // Fetch data for each symbol
+    for (let i = 0; i < yahooSymbols.length; i++) {
+      const yahooSymbol = yahooSymbols[i];
+      const originalSymbol = symbols[i];
+
+      try {
+        console.log(`[YFinance Crypto] ========== FETCHING ${yahooSymbol} ==========`);
+
+        const queryOptions = {
+          period1: startDate,
+          period2: endDate,
+          interval: '1h' // Use 1-hour intervals for better data availability
+        };
+        
+        console.log(`[YFinance Crypto] Query params:`, {
+          period1: startDate.toISOString(),
+          period2: endDate.toISOString(),
+          interval: '5m (5 minutes)',
+          hoursRequested: hoursNeeded
+        });
+
+        console.log(`[YFinance Crypto] Calling yahoo-finance2...`);
+        const historicalData = await yahooFinance.chart(yahooSymbol, queryOptions);
+        
+        console.log(`[YFinance Crypto] Raw response:`, {
+          hasData: !!historicalData,
+          hasQuotes: !!historicalData?.quotes,
+          quotesLength: historicalData?.quotes?.length || 0,
+          meta: historicalData?.meta ? {
+            symbol: historicalData.meta.symbol,
+            exchangeName: historicalData.meta.exchangeName,
+            instrumentType: historicalData.meta.instrumentType,
+            firstTradeDate: historicalData.meta.firstTradeDate,
+            regularMarketTime: historicalData.meta.regularMarketTime
+          } : 'NO META'
+        });
+
+        if (!historicalData || !historicalData.quotes || historicalData.quotes.length === 0) {
+          console.warn(`[YFinance Crypto] ⚠️ NO DATA RETURNED for ${yahooSymbol}`);
+          console.warn(`[YFinance Crypto] This could be due to:`);
+          console.warn(`  - Symbol not found or invalid`);
+          console.warn(`  - Market closed for this crypto`);
+          console.warn(`  - Yahoo Finance API limitations on 1-minute intervals`);
+          console.warn(`  - Rate limiting`);
+          result[originalSymbol] = [];
+          continue;
+        }
+        
+        console.log(`[YFinance Crypto] ✅ SUCCESS: Received ${historicalData.quotes.length} quotes for ${yahooSymbol}`);
+
+        // Transform to our format
+        const bars = historicalData.quotes.map(quote => ({
+          timestamp: quote.date.getTime(),
+          open: quote.open || 0,
+          high: quote.high || 0,
+          low: quote.low || 0,
+          close: quote.close || 0,
+          volume: quote.volume || 0
+        })).filter(bar => bar.close > 0); // Filter out invalid bars
+
+        result[originalSymbol] = bars.slice(-limitBars); // Limit to requested number
+
+        console.log(`[YFinance Crypto] ${originalSymbol}: ${result[originalSymbol].length} bars received`);
+        
+        // Debug: Log first and last few bars BEFORE any transformation
+        if (result[originalSymbol].length > 0) {
+          const firstBar = result[originalSymbol][0];
+          const lastBar = result[originalSymbol][result[originalSymbol].length - 1];
+          console.log(`[YFinance Crypto] ${originalSymbol} FIRST bar:`, {
+            timestamp: new Date(firstBar.timestamp).toISOString(),
+            close: firstBar.close
+          });
+          console.log(`[YFinance Crypto] ${originalSymbol} LAST bar:`, {
+            timestamp: new Date(lastBar.timestamp).toISOString(),
+            close: lastBar.close
+          });
+        }
+        
+        // Calculate ATR and RSI if we have enough data
+        // Need MORE than 14 bars for period=14 (use at least 30)
+        if (result[originalSymbol].length >= 30) {
+          const highs = result[originalSymbol].slice(-30).map(b => b.high);
+          const lows = result[originalSymbol].slice(-30).map(b => b.low);
+          const closes = result[originalSymbol].slice(-30).map(b => b.close);
+          
+          // DEBUG: Verify we're using different data for each symbol
+          console.log(`[YFinance Crypto] ${originalSymbol} CALCULATION DATA:`, {
+            firstClose: closes[0],
+            lastClose: closes[closes.length - 1],
+            avgClose: (closes.reduce((a,b) => a+b, 0) / closes.length).toFixed(2),
+            highestHigh: Math.max(...highs),
+            lowestLow: Math.min(...lows)
+          });
+          
+          // Calculate ATR
+          const atrResult = ATR.calculate({
+            high: highs,
+            low: lows,
+            close: closes,
+            period: 14
+          });
+          
+          const atrValue = atrResult.length > 0 ? atrResult[atrResult.length - 1] : 0;
+          const currentPrice = result[originalSymbol][result[originalSymbol].length - 1].close;
+          const atrPercentage = currentPrice > 0 ? (atrValue / currentPrice) * 100 : 0;
+          
+          // Calculate RSI (use 30 bars for period=14)
+          const closePrices = result[originalSymbol].slice(-30).map(b => b.close);
+          const rsiResult = RSI.calculate({
+            values: closePrices,
+            period: 14
+          });
+          
+          const rsiValue = rsiResult.length > 0 ? rsiResult[rsiResult.length - 1] : 50;
+          
+          console.log(`[YFinance Crypto] ${originalSymbol} INDICATORS:`, {
+            atrValue: atrValue.toFixed(2),
+            atrPercentage: atrPercentage.toFixed(2) + '%',
+            rsiValue: rsiValue.toFixed(2),
+            validData: true
+          });
+          
+          // Transform to object with bars AND indicators
+          result[originalSymbol] = {
+            bars: result[originalSymbol],
+            indicators: {
+              atr: atrValue,
+              atrPercentage: atrPercentage,
+              rsi: rsiValue
+            }
+          };
+        } else {
+          console.warn(`[YFinance Crypto] ${originalSymbol}: Not enough data for indicators (need 14, got ${result[originalSymbol].length})`);
+          
+          // Same structure as above: object with bars and default indicators
+          result[originalSymbol] = {
+            bars: result[originalSymbol],
+            indicators: {
+              atr: 0,
+              atrPercentage: 0,
+              rsi: 50
+            }
+          };
+        }
+
+      } catch (symbolError) {
+        console.error(`[YFinance Crypto] Error fetching ${yahooSymbol}:`, symbolError.message);
+        result[originalSymbol] = [];
+      }
+    }
+
+    res.json({
+      success: true,
+      data: result,
+      provider: 'Yahoo Finance'
+    });
+
+  } catch (error) {
+    console.error('[YFinance Crypto Error]:', error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch crypto bars from Yahoo Finance',
       message: error.message 
     });
   }
